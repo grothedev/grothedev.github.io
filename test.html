@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Animated Fire Effect</title>
+  <style>
+    body {
+      background: #000;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      color: #FFF;
+    }
+    canvas {
+      border: 1px solid #333;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    label {
+      margin-bottom: 5px;
+    }
+    button {
+      padding: 8px 16px;
+      background: #FF5722;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 0 5px;
+    }
+    button:hover {
+      background: #FF7043;
+    }
+  </style>
+</head>
+<body>
+  <h1>Animated Fire Effect</h1>
+  
+  <canvas id="fireCanvas" width="320" height="240"></canvas>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label for="intensitySlider">Intensity</label>
+      <input type="range" id="intensitySlider" min="1" max="20" value="10">
+    </div>
+    
+    <div class="control-group">
+      <label for="coolingSlider">Cooling</label>
+      <input type="range" id="coolingSlider" min="1" max="10" value="4">
+    </div>
+    
+    <div class="control-group">
+      <label for="speedSlider">Speed</label>
+      <input type="range" id="speedSlider" min="1" max="10" value="5">
+    </div>
+    
+    <div class="control-group">
+      <label for="windSlider">Wind Direction</label>
+      <input type="range" id="windSlider" min="-10" max="10" value="0" step="0.5">
+      <span id="windValue">0</span>
+    </div>
+    
+    <div class="control-group">
+      <label for="windStrengthSlider">Wind Strength</label>
+      <input type="range" id="windStrengthSlider" min="0" max="10" value="3">
+    </div>
+    
+    <div class="control-group">
+      <label for="windVariabilityToggle">Variable Wind</label>
+      <input type="checkbox" id="windVariabilityToggle" checked>
+    </div>
+    
+    <div class="control-group">
+      <label for="windVariabilitySlider">Wind Variability</label>
+      <input type="range" id="windVariabilitySlider" min="1" max="10" value="5">
+    </div>
+    
+    <div class="control-group">
+      <label for="scatterSlider">Flame Scatter</label>
+      <input type="range" id="scatterSlider" min="1" max="10" value="5">
+    </div>
+    
+    <div class="control-group">
+      <label for="sourceWidthSlider">Fire Width</label>
+      <input type="range" id="sourceWidthSlider" min="10" max="100" value="100">
+      <span id="sourceWidthValue">100%</span>
+    </div>
+    
+    <div class="control-group">
+      <label for="emberToggle">Embers</label>
+      <input type="checkbox" id="emberToggle" checked>
+    </div>
+    
+    <div class="control-group">
+      <label for="emberRateSlider">Ember Rate</label>
+      <input type="range" id="emberRateSlider" min="1" max="20" value="5">
+    </div>
+    
+    <div class="control-group">
+      <label for="emberSizeSlider">Ember Size</label>
+      <input type="range" id="emberSizeSlider" min="1" max="5" value="2">
+    </div>
+  </div>
+  
+  <div>
+    <button id="pauseBtn">Pause</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+  
+  <script>
+    // Fire simulation class
+    class FireEffect {
+      constructor(canvas, width, height) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.width = width;
+        this.height = height;
+        
+        // Create image data buffer
+        this.imageData = this.ctx.createImageData(this.width, this.height);
+        
+        // Fire parameters - can be adjusted
+        this.intensity = 10;
+        this.cooling = 4;
+        this.speedFactor = 5;
+        this.windDirection = 0;  // Negative = left, Positive = right
+        this.windStrength = 3;   // How much the wind affects the fire
+        this.sourceWidth = 100;  // Width of fire source as percentage of canvas width
+        this.flameScatter = 5;   // How much flames scatter as they rise (1-10)
+        
+        // Wind variability
+        this.windVariabilityEnabled = true;
+        this.windVariability = 5;
+        this.windTime = 0;
+        this.currentVariableWind = 0;
+        this.targetVariableWind = 0;
+        this.windTransitionSpeed = 0.02;
+        
+        // Ember parameters
+        this.embersEnabled = true;
+        this.emberRate = 5;      // How many embers to spawn per frame
+        this.emberSize = 2;      // Size of embers
+        this.embers = [];        // Array to store active ember particles
+        
+        // Animation state
+        this.paused = false;
+        this.animationId = null;
+        
+        // Fire buffer - stores "heat" values
+        this.fireBuffer = new Array(this.width * this.height).fill(0);
+        
+        // Color palette for mapping heat values to colors
+        this.palette = this.createFirePalette();
+        
+        // Initial setup
+        this.initFire();
+      }
+      
+      // Creates a color palette with gradients from black to yellow to red
+      createFirePalette() {
+        const palette = [];
+        // Black to dark red
+        for (let i = 0; i < 32; i++) {
+          palette.push({ r: i * 2, g: 0, b: 0 });
+        }
+        // Dark red to bright red
+        for (let i = 0; i < 32; i++) {
+          palette.push({ r: 64 + i * 3, g: 0, b: 0 });
+        }
+        // Red to orange
+        for (let i = 0; i < 32; i++) {
+          palette.push({ r: 160 + i * 3, g: i * 5, b: 0 });
+        }
+        // Orange to yellow
+        for (let i = 0; i < 32; i++) {
+          palette.push({ r: 255, g: 160 + i * 3, b: i * 2 });
+        }
+        // Yellow to white (at the hottest)
+        for (let i = 0; i < 32; i++) {
+          palette.push({ r: 255, g: 255, b: i * 8 });
+        }
+        return palette;
+      }
+      
+      // Initialize the fire with a hot bottom row
+      initFire() {
+        // Reset all cells to 0
+        this.fireBuffer.fill(0);
+        this.embers = [];
+        
+        // Set bottom row to maximum heat based on source width
+        const sourceStart = Math.floor(this.width * (0.5 - this.sourceWidth/200));
+        const sourceEnd = Math.floor(this.width * (0.5 + this.sourceWidth/200));
+        
+        for (let x = 0; x < this.width; x++) {
+          // Only add heat within the source width
+          if (x >= sourceStart && x <= sourceEnd) {
+            // Add more heat intensity when source is narrower
+            const intensityMultiplier = 100 / this.sourceWidth;
+            const heatValue = Math.min(160, 100 + Math.random() * 60 * intensityMultiplier);
+            this.fireBuffer[(this.height - 1) * this.width + x] = heatValue;
+          } else {
+            this.fireBuffer[(this.height - 1) * this.width + x] = 0;
+          }
+        }
+      }
+      
+      // Update the fire simulation
+      updateFire() {
+        // Update heat values - simulate fire rising and cooling
+        for (let y = 0; y < this.height - 1; y++) {
+          for (let x = 0; x < this.width; x++) {
+            const src = y * this.width + x;
+            
+            // Calculate wind effect - stronger at higher points (more realistic)
+            const heightFactor = 1 - (y / this.height); // 0 at bottom, 1 at top
+            const windEffect = this.windDirection * this.windStrength * heightFactor * 0.05;
+            
+            // Random spread factor plus wind effect
+            const baseSpread = Math.floor(Math.random() * 3) - 1;
+            const windSpread = baseSpread + windEffect;
+            
+            // Apply wind to spread calculation
+            const windOffset = Math.floor(windSpread);
+            
+            // Calculate the destination index with wind-affected spread
+            const dstX = Math.max(0, Math.min(this.width - 1, x + windOffset));
+            const dst = (y + 1) * this.width + dstX;
+            
+            // Apply cooling - more cooling when wind is stronger
+            const windCoolingFactor = 1 + (Math.abs(this.windDirection) * 0.02);
+            let coolAmount = Math.random() * this.cooling * windCoolingFactor;
+            let value = this.fireBuffer[dst] - coolAmount;
+            
+            // Make sure we don't go below 0
+            this.fireBuffer[src] = Math.max(0, value);
+          }
+        }
+        
+        // Add new heat at the bottom for continuous fire based on source width
+        const sourceStart = Math.floor(this.width * (0.5 - this.sourceWidth/200));
+        const sourceEnd = Math.floor(this.width * (0.5 + this.sourceWidth/200));
+        
+        for (let x = 0; x < this.width; x++) {
+          // Only add heat within the source width
+          if (x >= sourceStart && x <= sourceEnd) {
+            if (Math.random() < 0.7) {
+              // Add more heat intensity when source is narrower
+              const intensityMultiplier = 100 / this.sourceWidth;
+              let value = Math.random() * this.intensity * intensityMultiplier;
+              const idx = (this.height - 1) * this.width + x;
+              this.fireBuffer[idx] = Math.min(160, this.fireBuffer[idx] + value);
+            }
+          }
+        }
+        
+        // Generate embers
+        if (this.embersEnabled) {
+          this.generateEmbers();
+        }
+      }
+      
+      // Generate ember particles
+      generateEmbers() {
+        const sourceStart = Math.floor(this.width * (0.5 - this.sourceWidth/200));
+        const sourceEnd = Math.floor(this.width * (0.5 + this.sourceWidth/200));
+        
+        // Generate new embers based on ember rate
+        for (let i = 0; i < this.emberRate; i++) {
+          if (Math.random() < 0.2) {
+            // Generate ember from a random position in the fire source
+            const x = sourceStart + Math.random() * (sourceEnd - sourceStart);
+            const y = this.height - 10 - Math.random() * 30;
+            
+            // Only create ember if the position is hot enough
+            const idx = Math.floor(y) * this.width + Math.floor(x);
+            if (this.fireBuffer[idx] > 80) {
+              // Create a new ember with random properties
+              this.embers.push({
+                x: x,
+                y: y,
+                size: (0.5 + Math.random()) * this.emberSize,
+                vx: (Math.random() - 0.5) * 1.5 + (this.windDirection * 0.1),
+                vy: -1 - Math.random() * 2,
+                life: 1.0,  // Life percentage (1.0 = full life, 0.0 = dead)
+                decay: 0.005 + Math.random() * 0.01
+              });
+            }
+          }
+        }
+        
+        // Update existing embers
+        for (let i = this.embers.length - 1; i >= 0; i--) {
+          const ember = this.embers[i];
+          
+          // Update position
+          ember.x += ember.vx;
+          ember.y += ember.vy;
+          
+          // Apply wind
+          ember.vx += this.windDirection * 0.01;
+          
+          // Apply slight upward acceleration (buoyancy)
+          ember.vy -= 0.01;
+          
+          // Decay life
+          ember.life -= ember.decay;
+          
+          // Remove dead embers
+          if (ember.life <= 0 || ember.x < 0 || ember.x >= this.width || ember.y < 0) {
+            this.embers.splice(i, 1);
+          }
+        }
+      }
+      
+      // Render the fire buffer to the canvas
+      renderFire() {
+        // Clear canvas with black background
+        this.ctx.fillStyle = 'black';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        // Map heat values to colors and put them in the image data
+        for (let y = 0; y < this.height; y++) {
+          for (let x = 0; x < this.width; x++) {
+            const index = y * this.width + x;
+            const colorIndex = Math.min(this.palette.length - 1, Math.floor(this.fireBuffer[index]));
+            const color = this.palette[colorIndex];
+            
+            // Calculate image data index (4 bytes per pixel: R,G,B,A)
+            const imgDataIdx = (y * this.width + x) * 4;
+            
+            // Set the color
+            this.imageData.data[imgDataIdx] = color.r;
+            this.imageData.data[imgDataIdx + 1] = color.g;
+            this.imageData.data[imgDataIdx + 2] = color.b;
+            this.imageData.data[imgDataIdx + 3] = 255; // Alpha (fully opaque)
+          }
+        }
+        
+        // Put the image data on the canvas
+        this.ctx.putImageData(this.imageData, 0, 0);
+        
+        // Render embers on top of the fire
+        if (this.embersEnabled) {
+          this.ctx.globalCompositeOperation = 'lighter';
+          
+          for (const ember of this.embers) {
+            // Create a gradient for the ember
+            const gradient = this.ctx.createRadialGradient(
+              ember.x, ember.y, 0,
+              ember.x, ember.y, ember.size * 2
+            );
+            
+            // Ember color based on life (yellow-orange to red as it dies)
+            const alpha = ember.life * 0.7;
+            gradient.addColorStop(0, `rgba(255, 255, 200, ${alpha})`);
+            gradient.addColorStop(0.2, `rgba(255, 160, 20, ${alpha * 0.8})`);
+            gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
+            
+            // Draw the ember
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(ember.x, ember.y, ember.size * 2, 0, Math.PI * 2);
+            this.ctx.fill();
+          }
+          
+          // Reset composite operation
+          this.ctx.globalCompositeOperation = 'source-over';
+        }
+      }
+      
+      // Animation loop
+      animate() {
+        if (this.paused) return;
+        
+        // Update the fire simulation multiple times for smoother animation
+        for (let i = 0; i < this.speedFactor; i++) {
+          this.updateFire();
+        }
+        
+        // Render to canvas
+        this.renderFire();
+        
+        // Schedule next frame
+        this.animationId = requestAnimationFrame(() => this.animate());
+      }
+      
+      // Start the animation
+      start() {
+        this.paused = false;
+        if (!this.animationId) {
+          this.animate();
+        }
+      }
+      
+      // Pause the animation
+      pause() {
+        this.paused = true;
+        if (this.animationId) {
+          cancelAnimationFrame(this.animationId);
+          this.animationId = null;
+        }
+      }
+      
+      // Toggle pause state
+      togglePause() {
+        if (this.paused) {
+          this.start();
+        } else {
+          this.pause();
+        }
+      }
+      
+      // Reset the fire
+      reset() {
+        this.initFire();
+      }
+      
+      // Update parameters
+      setIntensity(value) {
+        this.intensity = value;
+      }
+      
+      setCooling(value) {
+        this.cooling = value;
+      }
+      
+      setSpeed(value) {
+        this.speedFactor = value;
+      }
+      
+      setWindDirection(value) {
+        this.windDirection = value;
+      }
+      
+      setWindStrength(value) {
+        this.windStrength = value;
+      }
+      
+      setSourceWidth(value) {
+        this.sourceWidth = value;
+        this.initFire(); // Reinitialize fire with new width
+      }
+      
+      setEmbersEnabled(enabled) {
+        this.embersEnabled = enabled;
+        if (!enabled) {
+          this.embers = []; // Clear existing embers when disabled
+        }
+      }
+      
+      setEmberRate(value) {
+        this.emberRate = value;
+      }
+      
+      setEmberSize(value) {
+        this.emberSize = value;
+      }
+    }
+    
+    // Get the canvas element
+    const canvas = document.getElementById('fireCanvas');
+    
+    // Create the fire effect
+    const fire = new FireEffect(canvas, canvas.width, canvas.height);
+    
+    // Start the animation
+    fire.start();
+    
+    // Set up UI controls
+    const intensitySlider = document.getElementById('intensitySlider');
+    const coolingSlider = document.getElementById('coolingSlider');
+    const speedSlider = document.getElementById('speedSlider');
+    const windSlider = document.getElementById('windSlider');
+    const windStrengthSlider = document.getElementById('windStrengthSlider');
+    const sourceWidthSlider = document.getElementById('sourceWidthSlider');
+    const emberToggle = document.getElementById('emberToggle');
+    const emberRateSlider = document.getElementById('emberRateSlider');
+    const emberSizeSlider = document.getElementById('emberSizeSlider');
+    const windValueDisplay = document.getElementById('windValue');
+    const sourceWidthValueDisplay = document.getElementById('sourceWidthValue');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    
+    // Event listeners for sliders
+    intensitySlider.addEventListener('input', function() {
+      fire.setIntensity(parseInt(this.value));
+    });
+    
+    coolingSlider.addEventListener('input', function() {
+      fire.setCooling(parseInt(this.value));
+    });
+    
+    speedSlider.addEventListener('input', function() {
+      fire.setSpeed(parseInt(this.value));
+    });
+    
+    windSlider.addEventListener('input', function() {
+      const value = parseFloat(this.value);
+      fire.setWindDirection(value);
+      windValueDisplay.textContent = value.toFixed(1);
+    });
+    
+    windStrengthSlider.addEventListener('input', function() {
+      fire.setWindStrength(parseInt(this.value));
+    });
+    
+    sourceWidthSlider.addEventListener('input', function() {
+      const value = parseInt(this.value);
+      fire.setSourceWidth(value);
+      sourceWidthValueDisplay.textContent = value + '%';
+    });
+    
+    emberToggle.addEventListener('change', function() {
+      fire.setEmbersEnabled(this.checked);
+    });
+    
+    emberRateSlider.addEventListener('input', function() {
+      fire.setEmberRate(parseInt(this.value));
+    });
+    
+    emberSizeSlider.addEventListener('input', function() {
+      fire.setEmberSize(parseInt(this.value));
+    });
+    
+    // Event listeners for buttons
+    pauseBtn.addEventListener('click', function() {
+      fire.togglePause();
+      this.textContent = fire.paused ? 'Resume' : 'Pause';
+    });
+    
+    resetBtn.addEventListener('click', function() {
+      fire.reset();
+    });
+  </script>
+</body>
+</html>
