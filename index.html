@@ -1,1 +1,81 @@
-Coming Soon.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grothe</title>
+    <link rel="stylesheet" href="css/theme.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #505050;
+        }
+        header {
+            background-color: #333;
+            color: #dfdfdf;
+            padding: 1rem;
+            text-align: center;
+        }
+        main {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background-color: #cecece;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        section {
+            margin-bottom: 2rem;
+        }
+        section h2 {
+            margin-top: 0;
+        }
+        section p {
+            margin: 0.5rem 0;
+        }
+        section a {
+            color: #3f6d87;
+            text-decoration: none;
+        }
+        section li {
+            list-style-type: none;
+            margin: 2rem 1rem;
+        }
+        section a:hover {
+            text-decoration: underline;
+        }
+        .status {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Info</h2>
+        <section class = "status">
+            <p>Currently I am in the process of moving from Iowa to Virginia to start a new job, so my homeserver will be down for about a month. That is why I put up this site. Its main purpose is just to host some static content. A lot of the services on my homeserver require a database, PHP, or nodejs, so they can't be served here.  </p>
+        </section>
+    </header>
+    <main>
+        <section>
+            <p>Recently (late Feb of 2025), I told Anthropic's Claude Sonnet LLM to write me a simple program to generate fire effects, because I was working on some animated pixel art and wanted to see what it could do. It ended up making a python script and a javascript webapp. Then I decided to have it make some more things.</p>
+            <ul>
+                <li><a href = "/fire.html">Fire</a></li>
+                <li><a href = "/blood_v1.html">Blood Splatters V1</a></li>
+                <li><a href = "/blood_gpu.html">Blood Splatters V2</a> <small style="margin-left: 2px;">(Uses webgpu, so make sure you have it <a href = "https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API#browser_compatibility">enabled on your browser</a>! You might have to enable some flags)</small></a></li>
+                <li><a href = "/sprites.html">More Sprites</a></li>
+            </ul>
+            <p><a href = "https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API">What is WebGPU?</a> <a href = "/webgpuchecker.html">Check if WebGPU is working on your client</a></p>
+        </section>
+        <section>
+            More to come...
+        </section>
+        <footer>
+            <p>Last updated March 6th, 2025</p>
+        </footer>
+    </main>
+</body>
+</html>
+

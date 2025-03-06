@@ -1,0 +1,3736 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Effect Sprite Generator with GIF Export</title>
+  <style>
+    body {
+      background: #222;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      color: #eee;
+    }
+    
+    h1, h2, h3 {
+      margin-top: 0;
+      color: #fff;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    }
+    
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      max-width: 1200px;
+      gap: 20px;
+      justify-content: center;
+    }
+    
+    .canvas-container {
+      position: relative;
+      border: 1px solid #444;
+      background: #000;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      margin-bottom: 10px;
+    }
+    
+    .canvas-container canvas {
+      display: block;
+    }
+    
+    .controls-panel {
+      width: 320px;
+      background: #333;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    
+    .control-section {
+      margin-bottom: 20px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 10px;
+    }
+    
+    .control-section:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+    
+    .control-group {
+      margin-bottom: 10px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    select, input[type="range"], input[type="number"], input[type="checkbox"] {
+      width: 100%;
+      margin-bottom: 5px;
+      background: #444;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 5px;
+      border-radius: 4px;
+    }
+    
+    input[type="checkbox"] {
+      width: auto;
+    }
+    
+    select {
+      appearance: none;
+      padding: 8px;
+    }
+    
+    button {
+      background: #4a6cd3;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px 5px 5px 0;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #5d7ee6;
+    }
+    
+    button.record {
+      background: #d34a4a;
+    }
+    
+    button.record:hover {
+      background: #e65d5d;
+    }
+    
+    button.export {
+      background: #4ad358;
+    }
+    
+    button.export:hover {
+      background: #5de66b;
+    }
+    
+    .export-panel {
+      margin-top: 20px;
+      padding: 15px;
+      background: #2a2a2a;
+      border-radius: 5px;
+    }
+    
+    .preview-container {
+      width: 600px;
+      background: #333;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    
+    .preview-options {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    .preview-frames {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #2a2a2a;
+      border-radius: 4px;
+    }
+    
+    .frame-preview {
+      border: 1px solid #555;
+      background: #000;
+      position: relative;
+    }
+    
+    .frame-preview.selected {
+      border-color: #4a6cd3;
+    }
+    
+    .frame-preview canvas {
+      display: block;
+    }
+    
+    .frame-controls {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
+      padding: 3px;
+    }
+    
+    .frame-controls button {
+      padding: 2px 5px;
+      margin: 0 2px;
+      font-size: 0.7em;
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    
+    .tab {
+      padding: 10px 15px;
+      background: #333;
+      cursor: pointer;
+      border-radius: 4px 4px 0 0;
+      margin-right: 5px;
+    }
+    
+    .tab.active {
+      background: #4a6cd3;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    #effectPreview {
+      margin: 10px 0;
+    }
+    
+    .recording-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #d34a4a;
+      display: none;
+    }
+    
+    .recording-indicator.active {
+      display: block;
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+    
+    .loader {
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #4a6cd3;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 2s linear infinite;
+      margin: 0 auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .effect-preview {
+      display: inline-block;
+      margin: 10px;
+      text-align: center;
+      cursor: pointer;
+    }
+    
+    .effect-preview img {
+      border: 2px solid transparent;
+      border-radius: 5px;
+    }
+    
+    .effect-preview.selected img {
+      border-color: #4a6cd3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Effect Sprite Generator</h1>
+  
+  <div class="container">
+    <div class="controls-panel">
+      <div class="control-section">
+        <h3>Effect Type</h3>
+        <div class="control-group">
+          <select id="effectType">
+            <option value="fire">Fire</option>
+            <option value="blood">Blood Splatter</option>
+            <option value="smoke">Smoke</option>
+            <option value="explosion">Explosion</option>
+            <option value="magic">Magic Effect</option>
+            <option value="water">Water</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="fireControls" class="effect-controls">
+        <div class="control-section">
+          <h3>Fire Parameters</h3>
+          <div class="control-group">
+            <label for="fireIntensity">Intensity</label>
+            <input type="range" id="fireIntensity" min="1" max="20" value="10">
+          </div>
+          <div class="control-group">
+            <label for="fireCooling">Cooling</label>
+            <input type="range" id="fireCooling" min="1" max="10" value="4">
+          </div>
+          <div class="control-group">
+            <label for="fireSpeed">Speed</label>
+            <input type="range" id="fireSpeed" min="1" max="10" value="5">
+          </div>
+          <div class="control-group">
+            <label for="fireScatter">Flame Scatter</label>
+            <input type="range" id="fireScatter" min="1" max="10" value="5">
+          </div>
+          <div class="control-group">
+            <label for="fireWidth">Fire Width (%)</label>
+            <input type="range" id="fireWidth" min="10" max="100" value="100">
+          </div>
+          <div class="control-group">
+            <label for="windDirection">Wind Direction</label>
+            <input type="range" id="windDirection" min="-10" max="10" value="0" step="0.5">
+          </div>
+          <div class="control-group">
+            <label for="windStrength">Wind Strength</label>
+            <input type="range" id="windStrength" min="0" max="10" value="3">
+          </div>
+          <div class="control-group">
+            <label>
+              <input type="checkbox" id="windVariability" checked>
+              Wind Variability
+            </label>
+          </div>
+          <div class="control-group">
+            <label for="emberToggle">
+              <input type="checkbox" id="emberToggle" checked>
+              Show Embers
+            </label>
+          </div>
+          <div class="control-group">
+            <label for="fireColor">Fire Color Preset</label>
+            <select id="fireColor">
+              <option value="default">Default (Red/Orange)</option>
+              <option value="blue">Blue Fire</option>
+              <option value="green">Green Fire</option>
+              <option value="purple">Purple Fire</option>
+              <option value="rainbow">Rainbow Fire</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div id="bloodControls" class="effect-controls" style="display: none;">
+        <div class="control-section">
+          <h3>Blood Splatter Parameters</h3>
+          <div class="control-group">
+            <label for="bloodGravity">Gravity</label>
+            <input type="range" id="bloodGravity" min="0.01" max="0.5" value="0.15" step="0.01">
+          </div>
+          <div class="control-group">
+            <label for="bloodViscosity">Viscosity</label>
+            <input type="range" id="bloodViscosity" min="0.75" max="0.99" value="0.92" step="0.01">
+          </div>
+          <div class="control-group">
+            <label for="bloodParticleCount">Particle Count</label>
+            <input type="range" id="bloodParticleCount" min="10" max="500" value="100">
+          </div>
+          <div class="control-group">
+            <label for="bloodParticleSize">Particle Size</label>
+            <input type="range" id="bloodParticleSize" min="1" max="8" value="3">
+          </div>
+          <div class="control-group">
+            <label for="bloodSprayForce">Spray Force</label>
+            <input type="range" id="bloodSprayForce" min="1" max="20" value="10">
+          </div>
+          <div class="control-group">
+            <label for="bloodSpread">Spread</label>
+            <input type="range" id="bloodSpread" min="0" max="1" value="0.3" step="0.05">
+          </div>
+          <div class="control-group">
+            <label for="bloodColor">Blood Color</label>
+            <select id="bloodColor">
+              <option value="red">Red</option>
+              <option value="green">Green (Slime)</option>
+              <option value="blue">Blue</option>
+              <option value="black">Black</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div id="customBloodColorGroup" class="control-group" style="display: none;">
+            <label for="customBloodColor">Custom Color</label>
+            <input type="color" id="customBloodColor" value="#ff0000">
+          </div>
+          <div class="control-group">
+            <label>
+              <input type="checkbox" id="dripsToggle" checked>
+              Enable Drips
+            </label>
+          </div>
+          <div class="control-group">
+            <label>
+              <input type="checkbox" id="poolingToggle" checked>
+              Enable Pooling
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div id="smokeControls" class="effect-controls" style="display: none;">
+        <div class="control-section">
+          <h3>Smoke Parameters</h3>
+          <div class="control-group">
+            <label for="smokeOpacity">Opacity</label>
+            <input type="range" id="smokeOpacity" min="0.1" max="1" value="0.6" step="0.05">
+          </div>
+          <div class="control-group">
+            <label for="smokeRiseSpeed">Rise Speed</label>
+            <input type="range" id="smokeRiseSpeed" min="0.5" max="5" value="1.5" step="0.1">
+          </div>
+          <div class="control-group">
+            <label for="smokeDensity">Density</label>
+            <input type="range" id="smokeDensity" min="1" max="10" value="5">
+          </div>
+          <div class="control-group">
+            <label for="smokeTurbulence">Turbulence</label>
+            <input type="range" id="smokeTurbulence" min="0" max="10" value="3">
+          </div>
+          <div class="control-group">
+            <label for="smokeSize">Particle Size</label>
+            <input type="range" id="smokeSize" min="5" max="50" value="20">
+          </div>
+          <div class="control-group">
+            <label for="smokeColor">Smoke Color</label>
+            <select id="smokeColor">
+              <option value="white">White</option>
+              <option value="black">Black</option>
+              <option value="gray">Gray</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div id="customSmokeColorGroup" class="control-group" style="display: none;">
+            <label for="customSmokeColor">Custom Color</label>
+            <input type="color" id="customSmokeColor" value="#cccccc">
+          </div>
+        </div>
+      </div>
+      
+      <div id="explosionControls" class="effect-controls" style="display: none;">
+        <div class="control-section">
+          <h3>Explosion Parameters</h3>
+          <div class="control-group">
+            <label for="explosionSize">Size</label>
+            <input type="range" id="explosionSize" min="1" max="10" value="5">
+          </div>
+          <div class="control-group">
+            <label for="explosionSpeed">Speed</label>
+            <input type="range" id="explosionSpeed" min="1" max="10" value="5">
+          </div>
+          <div class="control-group">
+            <label for="explosionParticles">Particle Count</label>
+            <input type="range" id="explosionParticles" min="50" max="500" value="200">
+          </div>
+          <div class="control-group">
+            <label for="explosionColor">Color Scheme</label>
+            <select id="explosionColor">
+              <option value="fire">Fire (Orange/Red)</option>
+              <option value="energy">Energy (Blue/White)</option>
+              <option value="toxic">Toxic (Green/Yellow)</option>
+              <option value="magic">Magic (Purple/Pink)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>
+              <input type="checkbox" id="explosionSmoke" checked>
+              Include Smoke
+            </label>
+          </div>
+          <div class="control-group">
+            <label>
+              <input type="checkbox" id="explosionShockwave" checked>
+              Include Shockwave
+            </label>
+          </div>
+          <div class="control-group">
+            <label>
+              <input type="checkbox" id="explosionLoop">
+              Loop Animation
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div id="magicControls" class="effect-controls" style="display: none;">
+        <div class="control-section">
+          <h3>Magic Effect Parameters</h3>
+          <div class="control-group">
+            <label for="magicType">Effect Type</label>
+            <select id="magicType">
+              <option value="sparkles">Sparkles</option>
+              <option value="aura">Aura</option>
+              <option value="bolts">Energy Bolts</option>
+              <option value="portal">Portal</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="magicIntensity">Intensity</label>
+            <input type="range" id="magicIntensity" min="1" max="10" value="5">
+          </div>
+          <div class="control-group">
+            <label for="magicSpeed">Speed</label>
+            <input type="range" id="magicSpeed" min="1" max="10" value="5">
+          </div>
+          <div class="control-group">
+            <label for="magicColor">Color Scheme</label>
+            <select id="magicColor">
+              <option value="arcane">Arcane (Purple)</option>
+              <option value="nature">Nature (Green)</option>
+              <option value="fire">Fire (Red/Orange)</option>
+              <option value="ice">Ice (Blue/White)</option>
+              <option value="holy">Holy (Gold/White)</option>
+              <option value="void">Void (Black/Purple)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="magicGlow">Glow Intensity</label>
+            <input type="range" id="magicGlow" min="0" max="10" value="5">
+          </div>
+          <div class="control-group">
+            <label>
+              <input type="checkbox" id="magicPulse" checked>
+              Pulsing Effect
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div id="waterControls" class="effect-controls" style="display: none;">
+        <div class="control-section">
+          <h3>Water Parameters</h3>
+          <div class="control-group">
+            <label for="waterType">Effect Type</label>
+            <select id="waterType">
+              <option value="splash">Splash</option>
+              <option value="drip">Drip</option>
+              <option value="flow">Flow</option>
+              <option value="ripple">Ripple</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="waterViscosity">Viscosity</label>
+            <input type="range" id="waterViscosity" min="0.8" max="1" value="0.95" step="0.01">
+          </div>
+          <div class="control-group">
+            <label for="waterSpeed">Speed</label>
+            <input type="range" id="waterSpeed" min="1" max="10" value="5">
+          </div>
+          <div class="control-group">
+            <label for="waterParticles">Particle Count</label>
+            <input type="range" id="waterParticles" min="50" max="500" value="200">
+          </div>
+          <div class="control-group">
+            <label for="waterColor">Water Color</label>
+            <select id="waterColor">
+              <option value="clear">Clear Blue</option>
+              <option value="deep">Deep Blue</option>
+              <option value="murky">Murky</option>
+              <option value="toxic">Toxic Green</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div id="customWaterColorGroup" class="control-group" style="display: none;">
+            <label for="customWaterColor">Custom Color</label>
+            <input type="color" id="customWaterColor" value="#4a8eff">
+          </div>
+          <div class="control-group">
+            <label for="waterTransparency">Transparency</label>
+            <input type="range" id="waterTransparency" min="0.1" max="1" value="0.7" step="0.05">
+          </div>
+          <div class="control-group">
+            <label>
+              <input type="checkbox" id="waterReflection" checked>
+              Reflections
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="control-section">
+        <h3>Animation Settings</h3>
+        <div class="control-group">
+          <label for="canvasWidth">Canvas Width</label>
+          <input type="number" id="canvasWidth" min="64" max="512" value="256">
+        </div>
+        <div class="control-group">
+          <label for="canvasHeight">Canvas Height</label>
+          <input type="number" id="canvasHeight" min="64" max="512" value="256">
+        </div>
+        <div class="control-group">
+          <label for="backgroundColor">Background Color</label>
+          <select id="backgroundColor">
+            <option value="transparent">Transparent</option>
+            <option value="black">Black</option>
+            <option value="white">White</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div id="customBgColorGroup" class="control-group" style="display: none;">
+          <label for="customBgColor">Custom Color</label>
+          <input type="color" id="customBgColor" value="#000000">
+        </div>
+        <div class="control-group">
+          <button id="resizeCanvas">Apply Size</button>
+        </div>
+      </div>
+      
+      <div class="control-section">
+        <h3>GIF Export</h3>
+        <div class="control-group">
+          <label for="gifQuality">Quality</label>
+          <select id="gifQuality">
+            <option value="high">High (more colors, larger file)</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low (fewer colors, smaller file)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="frameDuration">Frame Duration (ms)</label>
+          <input type="number" id="frameDuration" min="10" max="1000" value="100">
+        </div>
+        <div class="control-group">
+          <label for="loopCount">Loop Count</label>
+          <input type="number" id="loopCount" min="0" max="100" value="0">
+          <small>(0 = infinite loop)</small>
+        </div>
+        <div class="button-group">
+          <button id="recordBtn" class="record">Start Recording</button>
+          <button id="exportGifBtn" class="export" disabled>Export as GIF</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="preview-container">
+      <h3>Effect Preview</h3>
+      
+      <div class="canvas-container">
+        <canvas id="effectCanvas" width="256" height="256"></canvas>
+        <div id="recordingIndicator" class="recording-indicator"></div>
+      </div>
+      
+      <div id="recordingControls" style="display: none;">
+        <div class="recording-stats">
+          <p>Recording: <span id="frameCount">0</span> frames captured</p>
+          <button id="stopRecordingBtn">Stop Recording</button>
+          <div class="loader" id="exportLoader"></div>
+        </div>
+      </div>
+      
+      <div id="framesPreview" style="display: none;">
+        <h3>Captured Frames</h3>
+        <div class="preview-options">
+          <button id="clearFramesBtn">Clear All Frames</button>
+          <button id="previewAnimationBtn">Preview Animation</button>
+        </div>
+        <div class="preview-frames" id="framesContainer">
+          <!-- Captured frames will be displayed here -->
+        </div>
+      </div>
+      
+      <div id="exportedPreview" style="display: none;">
+        <h3>Exported Animation</h3>
+        <div id="exportResult"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Include gif.js library -->
+  <script src="https://cdnjs.cloudflare.com/gif.js/0.2.0/gif.js"></script>
+  
+  <script>
+    // Global variables
+    let effectCanvas, effectCtx;
+    let currentEffect = 'fire';
+    let recording = false;
+    let frames = [];
+    let currentFireEffect, currentBloodEffect, currentSmokeEffect, currentExplosionEffect, currentMagicEffect, currentWaterEffect;
+    let animationId = null;
+    
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      // Get canvas and context
+      effectCanvas = document.getElementById('effectCanvas');
+      effectCtx = effectCanvas.getContext('2d');
+      
+      // Init canvas size
+      updateCanvasSize();
+      
+      // Set up event listeners
+      document.getElementById('effectType').addEventListener('change', handleEffectChange);
+      document.getElementById('recordBtn').addEventListener('click', toggleRecording);
+      document.getElementById('stopRecordingBtn').addEventListener('click', stopRecording);
+      document.getElementById('exportGifBtn').addEventListener('click', exportGif);
+      document.getElementById('resizeCanvas').addEventListener('click', updateCanvasSize);
+      document.getElementById('clearFramesBtn').addEventListener('click', clearFrames);
+      document.getElementById('previewAnimationBtn').addEventListener('click', previewAnimation);
+      
+      // Background color change handler
+      document.getElementById('backgroundColor').addEventListener('change', function() {
+        if (this.value === 'custom') {
+          document.getElementById('customBgColorGroup').style.display = 'block';
+        } else {
+          document.getElementById('customBgColorGroup').style.display = 'none';
+        }
+      });
+      
+      // Custom color handlers
+      document.getElementById('bloodColor').addEventListener('change', function() {
+        document.getElementById('customBloodColorGroup').style.display = 
+          this.value === 'custom' ? 'block' : 'none';
+      });
+      
+      document.getElementById('smokeColor').addEventListener('change', function() {
+        document.getElementById('customSmokeColorGroup').style.display = 
+          this.value === 'custom' ? 'block' : 'none';
+      });
+      
+      document.getElementById('waterColor').addEventListener('change', function() {
+        document.getElementById('customWaterColorGroup').style.display = 
+          this.value === 'custom' ? 'block' : 'none';
+      });
+      
+      // Initialize fire effect
+      initFireEffect();
+      
+      // Start animation loop
+      animate();
+    });
+    
+    function updateCanvasSize() {
+      const width = parseInt(document.getElementById('canvasWidth').value);
+      const height = parseInt(document.getElementById('canvasHeight').value);
+      
+      // Update canvas size
+      effectCanvas.width = width;
+      effectCanvas.height = height;
+      
+      // Re-initialize current effect
+      switch(currentEffect) {
+        case 'fire':
+          initFireEffect();
+          break;
+        case 'blood':
+          initBloodEffect();
+          break;
+        case 'smoke':
+          initSmokeEffect();
+          break;
+        case 'explosion':
+          initExplosionEffect();
+          break;
+        case 'magic':
+          initMagicEffect();
+          break;
+        case 'water':
+          initWaterEffect();
+          break;
+      }
+    }
+    
+    function handleEffectChange() {
+      // Get the selected effect
+      const selectedEffect = document.getElementById('effectType').value;
+      
+      // Hide all effect controls
+      document.querySelectorAll('.effect-controls').forEach(el => {
+        el.style.display = 'none';
+      });
+      
+      // Show the selected effect controls
+      document.getElementById(`${selectedEffect}Controls`).style.display = 'block';
+      
+      // Update the current effect
+      currentEffect = selectedEffect;
+      
+      // Initialize the selected effect if not already initialized
+      switch(selectedEffect) {
+        case 'fire':
+          if (!currentFireEffect) initFireEffect();
+          break;
+        case 'blood':
+          if (!currentBloodEffect) initBloodEffect();
+          break;
+        case 'smoke':
+          if (!currentSmokeEffect) initSmokeEffect();
+          break;
+        case 'explosion':
+          if (!currentExplosionEffect) initExplosionEffect();
+          break;
+        case 'magic':
+          if (!currentMagicEffect) initMagicEffect();
+          break;
+        case 'water':
+          if (!currentWaterEffect) initWaterEffect();
+          break;
+      }
+    }
+    
+    // Frame Recording Functions
+    function toggleRecording() {
+      if (!recording) {
+        startRecording();
+      } else {
+        stopRecording();
+      }
+    }
+    
+    function startRecording() {
+      recording = true;
+      frames = [];
+      document.getElementById('recordBtn').textContent = 'Recording...';
+      document.getElementById('recordBtn').classList.add('recording');
+      document.getElementById('recordingIndicator').classList.add('active');
+      document.getElementById('recordingControls').style.display = 'block';
+      document.getElementById('framesPreview').style.display = 'none';
+      document.getElementById('exportedPreview').style.display = 'none';
+    }
+    
+    function stopRecording() {
+      recording = false;
+      document.getElementById('recordBtn').textContent = 'Start Recording';
+      document.getElementById('recordBtn').classList.remove('recording');
+      document.getElementById('recordingIndicator').classList.remove('active');
+      document.getElementById('exportGifBtn').disabled = frames.length === 0;
+      document.getElementById('frameCount').textContent = frames.length;
+      
+      if (frames.length > 0) {
+        document.getElementById('framesPreview').style.display = 'block';
+        renderFramePreviews();
+      }
+    }
+    
+    function captureFrame() {
+      // Create a new canvas for the frame
+      const frameCanvas = document.createElement('canvas');
+      frameCanvas.width = effectCanvas.width;
+      frameCanvas.height = effectCanvas.height;
+      const frameCtx = frameCanvas.getContext('2d');
+      
+      // Copy the current canvas state
+      frameCtx.drawImage(effectCanvas, 0, 0);
+      
+      // Add to frames array
+      frames.push(frameCanvas.toDataURL('image/png'));
+      
+      // Update frame count
+      document.getElementById('frameCount').textContent = frames.length;
+    }
+    
+    function renderFramePreviews() {
+      const container = document.getElementById('framesContainer');
+      container.innerHTML = '';
+      
+      frames.forEach((frame, index) => {
+        const frameDiv = document.createElement('div');
+        frameDiv.className = 'frame-preview';
+        
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = 80;
+        frameCanvas.height = 80;
+        const frameCtx = frameCanvas.getContext('2d');
+        
+        const img = new Image();
+        img.onload = function() {
+          // Calculate sizing to maintain aspect ratio
+          const aspectRatio = img.width / img.height;
+          let drawWidth, drawHeight;
+          
+          if (aspectRatio > 1) {
+            drawWidth = 80;
+            drawHeight = 80 / aspectRatio;
+          } else {
+            drawHeight = 80;
+            drawWidth = 80 * aspectRatio;
+          }
+          
+          // Center the image
+          const offsetX = (80 - drawWidth) / 2;
+          const offsetY = (80 - drawHeight) / 2;
+          
+          frameCtx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+        };
+        img.src = frame;
+        
+        // Add controls
+        const controls = document.createElement('div');
+        controls.className = 'frame-controls';
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'X';
+        deleteBtn.addEventListener('click', () => {
+          frames.splice(index, 1);
+          renderFramePreviews();
+          document.getElementById('frameCount').textContent = frames.length;
+          document.getElementById('exportGifBtn').disabled = frames.length === 0;
+        });
+        
+        controls.appendChild(deleteBtn);
+        frameDiv.appendChild(frameCanvas);
+        frameDiv.appendChild(controls);
+        container.appendChild(frameDiv);
+      });
+    }
+    
+    function clearFrames() {
+      frames = [];
+      document.getElementById('framesContainer').innerHTML = '';
+      document.getElementById('frameCount').textContent = '0';
+      document.getElementById('exportGifBtn').disabled = true;
+      document.getElementById('framesPreview').style.display = 'none';
+    }
+    
+    function previewAnimation() {
+      if (frames.length === 0) return;
+      
+      // Create preview animation container
+      const container = document.getElementById('exportedPreview');
+      container.style.display = 'block';
+      container.querySelector('#exportResult').innerHTML = '';
+      
+      // Create preview canvas
+      const previewCanvas = document.createElement('canvas');
+      previewCanvas.width = effectCanvas.width;
+      previewCanvas.height = effectCanvas.height;
+      const previewCtx = previewCanvas.getContext('2d');
+      
+      document.getElementById('exportResult').appendChild(previewCanvas);
+      
+      // Animation variables
+      let currentFrame = 0;
+      const frameDuration = parseInt(document.getElementById('frameDuration').value);
+      
+      // Clear any existing animation
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+      
+      // Animation function
+      function animatePreview() {
+        const img = new Image();
+        img.onload = function() {
+          previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+          previewCtx.drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height);
+          
+          currentFrame = (currentFrame + 1) % frames.length;
+          setTimeout(() => {
+            animationId = requestAnimationFrame(animatePreview);
+          }, frameDuration);
+        };
+        img.src = frames[currentFrame];
+      }
+      
+      animatePreview();
+    }
+    
+    function exportGif() {
+      if (frames.length === 0) return;
+      
+      // Show loader
+      document.getElementById('exportLoader').style.display = 'block';
+      
+      // Get export settings
+      const quality = document.getElementById('gifQuality').value;
+      const frameDuration = parseInt(document.getElementById('frameDuration').value);
+      const loopCount = parseInt(document.getElementById('loopCount').value);
+      
+      // Set up GIF encoder with appropriate settings
+      const gif = new GIF({
+        workers: 2,
+        quality: quality === 'high' ? 1 : quality === 'medium' ? 5 : 20,
+        workerScript: 'https://cdnjs.cloudflare.com/gif.js/0.2.0/gif.worker.js',
+        width: effectCanvas.width,
+        height: effectCanvas.height,
+        repeat: loopCount
+      });
+      
+      let framesLoaded = 0;
+      
+      // Add each frame to the gif
+      frames.forEach(frameData => {
+        const img = new Image();
+        img.onload = function() {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = effectCanvas.width;
+          tempCanvas.height = effectCanvas.height;
+          const tempCtx = tempCanvas.getContext('2d');
+          
+          tempCtx.drawImage(img, 0, 0, effectCanvas.width, effectCanvas.height);
+          gif.addFrame(tempCtx, {delay: frameDuration, copy: true});
+          
+          framesLoaded++;
+          if (framesLoaded === frames.length) {
+            // All frames loaded, render the gif
+            gif.render();
+          }
+        };
+        img.src = frameData;
+      });
+      
+      // When the gif is finished
+      gif.on('finished', function(blob) {
+        // Hide loader
+        document.getElementById('exportLoader').style.display = 'none';
+        
+        // Create preview
+        const container = document.getElementById('exportedPreview');
+        container.style.display = 'block';
+        
+        const resultContainer = document.getElementById('exportResult');
+        resultContainer.innerHTML = '';
+        
+        // Display the gif
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(blob);
+        resultContainer.appendChild(img);
+        
+        // Add download button
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = 'Download GIF';
+        downloadBtn.className = 'export';
+        downloadBtn.style.marginTop = '10px';
+        downloadBtn.addEventListener('click', () => {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `${currentEffect}-effect.gif`;
+          link.click();
+        });
+        
+        resultContainer.appendChild(document.createElement('br'));
+        resultContainer.appendChild(downloadBtn);
+      });
+    }
+    
+    // Animation loop
+    function animate() {
+      // Clear canvas
+      clearCanvas();
+      
+      // Update and render current effect
+      switch(currentEffect) {
+        case 'fire':
+          updateFireEffect();
+          break;
+        case 'blood':
+          updateBloodEffect();
+          break;
+        case 'smoke':
+          updateSmokeEffect();
+          break;
+        case 'explosion':
+          updateExplosionEffect();
+          break;
+        case 'magic':
+          updateMagicEffect();
+          break;
+        case 'water':
+          updateWaterEffect();
+          break;
+      }
+      
+      // Capture frame if recording
+      if (recording) {
+        captureFrame();
+      }
+      
+      // Continue animation loop
+      requestAnimationFrame(animate);
+    }
+    
+    function clearCanvas() {
+      const bgColor = document.getElementById('backgroundColor').value;
+      
+      if (bgColor === 'transparent') {
+        effectCtx.clearRect(0, 0, effectCanvas.width, effectCanvas.height);
+      } else if (bgColor === 'custom') {
+        effectCtx.fillStyle = document.getElementById('customBgColor').value;
+        effectCtx.fillRect(0, 0, effectCanvas.width, effectCanvas.height);
+      } else {
+        effectCtx.fillStyle = bgColor;
+        effectCtx.fillRect(0, 0, effectCanvas.width, effectCanvas.height);
+      }
+    }
+    
+    /*** FIRE EFFECT ***/
+    
+    function initFireEffect() {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      
+      currentFireEffect = {
+        width: width,
+        height: height,
+        fireBuffer: new Array(width * height).fill(0),
+        palette: createFirePalette('default'),
+        particles: [],
+        // Parameters
+        intensity: 10,
+        cooling: 4,
+        speedFactor: 5,
+        windDirection: 0,
+        windStrength: 3,
+        flameScatter: 5,
+        sourceWidth: 100,
+        windVariabilityEnabled: true,
+        windVariability: 5,
+        embersEnabled: true,
+        emberRate: 5,
+        emberSize: 2,
+        // Wind variability
+        windTime: 0,
+        currentVariableWind: 0,
+        targetVariableWind: 0
+      };
+      
+      // Initialize the fire with heat at bottom
+      resetFireBuffer();
+      
+      // Setup event listeners for fire parameters
+      document.getElementById('fireIntensity').addEventListener('input', function() {
+        currentFireEffect.intensity = parseInt(this.value);
+      });
+      
+      document.getElementById('fireCooling').addEventListener('input', function() {
+        currentFireEffect.cooling = parseInt(this.value);
+      });
+      
+      document.getElementById('fireSpeed').addEventListener('input', function() {
+        currentFireEffect.speedFactor = parseInt(this.value);
+      });
+      
+      document.getElementById('fireScatter').addEventListener('input', function() {
+        currentFireEffect.flameScatter = parseInt(this.value);
+      });
+      
+      document.getElementById('fireWidth').addEventListener('input', function() {
+        currentFireEffect.sourceWidth = parseInt(this.value);
+      });
+      
+      document.getElementById('windDirection').addEventListener('input', function() {
+        currentFireEffect.windDirection = parseFloat(this.value);
+      });
+      
+      document.getElementById('windStrength').addEventListener('input', function() {
+        currentFireEffect.windStrength = parseInt(this.value);
+      });
+      
+      document.getElementById('windVariability').addEventListener('change', function() {
+        currentFireEffect.windVariabilityEnabled = this.checked;
+      });
+      
+      document.getElementById('emberToggle').addEventListener('change', function() {
+        currentFireEffect.embersEnabled = this.checked;
+        if (!this.checked) {
+          currentFireEffect.particles = [];
+        }
+      });
+      
+      document.getElementById('fireColor').addEventListener('change', function() {
+        currentFireEffect.palette = createFirePalette(this.value);
+      });
+    }
+    
+    function resetFireBuffer() {
+      if (!currentFireEffect) return;
+      
+      const width = currentFireEffect.width;
+      const height = currentFireEffect.height;
+      
+      // Reset buffer
+      currentFireEffect.fireBuffer.fill(0);
+      
+      // Create heat source based on source width
+      const sourceWidth = currentFireEffect.sourceWidth;
+      const sourceStart = Math.floor(width * (0.5 - sourceWidth/200));
+      const sourceEnd = Math.floor(width * (0.5 + sourceWidth/200));
+      
+      for (let x = 0; x < width; x++) {
+        if (x >= sourceStart && x <= sourceEnd) {
+          currentFireEffect.fireBuffer[(height - 1) * width + x] = 160;
+        }
+      }
+    }
+    
+    function createFirePalette(type) {
+      const palette = [];
+      
+      switch(type) {
+        case 'blue':
+          // Blue fire palette
+          // Black to dark blue
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 0, g: 0, b: i * 2 });
+          }
+          // Dark blue to blue
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 0, g: i * 2, b: 64 + i * 5 });
+          }
+          // Blue to light blue
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 0, g: 64 + i * 3, b: 224 - i * 2 });
+          }
+          // Light blue to white
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: i * 8, g: 160 + i * 3, b: 160 + i * 3 });
+          }
+          break;
+          
+        case 'green':
+          // Green fire palette
+          // Black to dark green
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 0, g: i * 2, b: 0 });
+          }
+          // Dark green to green
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 0, g: 64 + i * 3, b: i * 2 });
+          }
+          // Green to light green/yellow
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: i * 5, g: 160 + i * 3, b: 64 + i });
+          }
+          // Light green to white
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 160 + i * 3, g: 224 + i, b: 96 + i * 5 });
+          }
+          break;
+          
+        case 'purple':
+          // Purple fire palette
+          // Black to dark purple
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: i * 2, g: 0, b: i * 3 });
+          }
+          // Dark purple to purple
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 64 + i * 2, g: 0, b: 96 + i * 3 });
+          }
+          // Purple to magenta
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 128 + i * 4, g: i * 2, b: 192 - i });
+          }
+          // Magenta to white
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 224 + i, g: 64 + i * 6, b: 160 + i * 3 });
+          }
+          break;
+          
+        case 'rainbow':
+          // Rainbow fire palette
+          const steps = 32;
+          const hueStep = 360 / (4 * steps);
+          
+          // Create a rainbow gradient
+          for (let i = 0; i < 4 * steps; i++) {
+            const hue = i * hueStep;
+            const rgb = hslToRgb(hue, 100, Math.min(50 + i / 2, 90));
+            palette.push({ r: rgb[0], g: rgb[1], b: rgb[2] });
+          }
+          break;
+          
+        default:
+          // Default red/orange/yellow fire palette
+          // Black to dark red
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: i * 2, g: 0, b: 0 });
+          }
+          // Dark red to bright red
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 64 + i * 3, g: 0, b: 0 });
+          }
+          // Red to orange
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 160 + i * 3, g: i * 5, b: 0 });
+          }
+          // Orange to yellow
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 255, g: 160 + i * 3, b: i * 2 });
+          }
+          // Yellow to white
+          for (let i = 0; i < 32; i++) {
+            palette.push({ r: 255, g: 255, b: i * 8 });
+          }
+          break;
+      }
+      
+      return palette;
+    }
+    
+    function updateWindVariability() {
+      if (!currentFireEffect.windVariabilityEnabled) {
+        currentFireEffect.currentVariableWind = 0;
+        return;
+      }
+      
+      // Update wind time
+      currentFireEffect.windTime += 0.01;
+      
+      // Check if we need a new target wind value
+      if (Math.random() < 0.01) {
+        // Set new target wind based on variability
+        const variabilityFactor = currentFireEffect.windVariability / 5;
+        currentFireEffect.targetVariableWind = (Math.random() * 2 - 1) * variabilityFactor * currentFireEffect.windDirection;
+        
+        // If wind direction is near zero, still have some variability
+        if (Math.abs(currentFireEffect.windDirection) < 0.5) {
+          currentFireEffect.targetVariableWind = (Math.random() * 2 - 1) * variabilityFactor * 2;
+        }
+        
+        // Adjust transition speed based on how different the new target is
+        currentFireEffect.windTransitionSpeed = 0.02 + Math.random() * 0.03;
+      }
+      
+      // Smoothly transition to target wind
+      const diff = currentFireEffect.targetVariableWind - currentFireEffect.currentVariableWind;
+      if (Math.abs(diff) > 0.01) {
+        currentFireEffect.currentVariableWind += diff * currentFireEffect.windTransitionSpeed;
+      } else {
+        currentFireEffect.currentVariableWind = currentFireEffect.targetVariableWind;
+      }
+    }
+    
+    function getEffectiveWind() {
+      return currentFireEffect.windDirection + currentFireEffect.currentVariableWind;
+    }
+    
+    function updateFireEffect() {
+      if (!currentFireEffect) return;
+      
+      // Update wind variability
+      updateWindVariability();
+      
+      // Get effective wind direction including variability
+      const effectiveWind = getEffectiveWind();
+      
+      // Update fire simulation multiple times for smoother animation
+      for (let step = 0; step < currentFireEffect.speedFactor; step++) {
+        // Main fire simulation
+        updateFireSimulation(effectiveWind);
+        
+        // Generate embers if enabled
+        if (currentFireEffect.embersEnabled) {
+          updateEmbers(effectiveWind);
+        }
+      }
+      
+      // Render fire to canvas
+      renderFire();
+    }
+    
+    function updateFireSimulation(effectiveWind) {
+      const width = currentFireEffect.width;
+      const height = currentFireEffect.height;
+      const buffer = currentFireEffect.fireBuffer;
+      
+      // Update heat values - simulate fire rising and cooling
+      for (let y = 0; y < height - 1; y++) {
+        for (let x = 0; x < width; x++) {
+          const src = y * width + x;
+          
+          // Calculate height factor for vertical effects
+          const heightFactor = 1 - (y / height); // 0 at bottom, 1 at top
+          
+          // Calculate wind effect - stronger at higher points (more realistic)
+          const windEffect = effectiveWind * currentFireEffect.windStrength * heightFactor * 0.05;
+          
+          // Increased scatter factor based on height and user setting
+          const scatterFactor = 1 + (heightFactor * currentFireEffect.flameScatter * 0.4);
+          
+          // Random spread factor plus wind effect with increased scatter at top
+          const baseSpread = (Math.random() * 5 - 2.5) * scatterFactor;
+          const windSpread = baseSpread + windEffect;
+          
+          // Apply wind to spread calculation
+          const windOffset = Math.floor(windSpread);
+          
+          // Calculate the destination index with wind-affected spread
+          const dstX = Math.max(0, Math.min(width - 1, x + windOffset));
+          const dst = (y + 1) * width + dstX;
+          
+          // Apply cooling - more cooling when wind is stronger
+          const windCoolingFactor = 1 + (Math.abs(effectiveWind) * 0.02);
+          // Also increase cooling with height for natural flame tapering
+          const heightCoolingFactor = 1 + (heightFactor * 0.5);
+          let coolAmount = Math.random() * currentFireEffect.cooling * windCoolingFactor * heightCoolingFactor;
+          let value = buffer[dst] - coolAmount;
+          
+          // Make sure we don't go below 0
+          buffer[src] = Math.max(0, value);
+        }
+      }
+      
+      // Add new heat at the bottom for continuous fire based on source width
+      const sourceWidth = currentFireEffect.sourceWidth;
+      const sourceStart = Math.floor(width * (0.5 - sourceWidth/200));
+      const sourceEnd = Math.floor(width * (0.5 + sourceWidth/200));
+      
+      for (let x = 0; x < width; x++) {
+        // Only add heat within the source width
+        if (x >= sourceStart && x <= sourceEnd) {
+          if (Math.random() < 0.7) {
+            // Add more heat intensity when source is narrower
+            const intensityMultiplier = 100 / sourceWidth;
+            let value = Math.random() * currentFireEffect.intensity * intensityMultiplier;
+            const idx = (height - 1) * width + x;
+            buffer[idx] = Math.min(160, buffer[idx] + value);
+          }
+        }
+      }
+    }
+    
+    function updateEmbers(effectiveWind) {
+      if (!currentFireEffect) return;
+      
+      const width = currentFireEffect.width;
+      const height = currentFireEffect.height;
+      const particles = currentFireEffect.particles;
+      
+      // Source dimensions for ember creation
+      const sourceWidth = currentFireEffect.sourceWidth;
+      const sourceStart = Math.floor(width * (0.5 - sourceWidth/200));
+      const sourceEnd = Math.floor(width * (0.5 + sourceWidth/200));
+      
+      // Create new embers based on ember rate
+      for (let i = 0; i < currentFireEffect.emberRate; i++) {
+        if (Math.random() < 0.2) {
+          // Generate ember from a random position in the fire source
+          const x = sourceStart + Math.random() * (sourceEnd - sourceStart);
+          const y = height - 10 - Math.random() * 30;
+          
+          // Only create ember if the position is hot enough (check fire buffer)
+          const idx = Math.floor(y) * width + Math.floor(x);
+          if (currentFireEffect.fireBuffer[idx] > 80) {
+            // Create a new ember
+            particles.push({
+              x: x,
+              y: y,
+              size: (0.5 + Math.random()) * currentFireEffect.emberSize,
+              vx: (Math.random() - 0.5) * 1.5 + (effectiveWind * 0.1),
+              vy: -1 - Math.random() * 2,
+              life: 1.0,  // Life percentage (1.0 = full life, 0.0 = dead)
+              decay: 0.005 + Math.random() * 0.01
+            });
+          }
+        }
+      }
+      
+      // Update existing embers
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const ember = particles[i];
+        
+        // Update position
+        ember.x += ember.vx;
+        ember.y += ember.vy;
+        
+        // Apply wind with some variability
+        ember.vx += effectiveWind * 0.01 * (0.8 + Math.random() * 0.4);
+        
+        // Apply slight upward acceleration (buoyancy)
+        ember.vy -= 0.01;
+        
+        // Add some random motion to embers
+        ember.vx += (Math.random() - 0.5) * 0.1;
+        ember.vy += (Math.random() - 0.5) * 0.1;
+        
+        // Decay life
+        ember.life -= ember.decay;
+        
+        // Remove dead embers or those that go out of bounds
+        if (ember.life <= 0 || ember.x < 0 || ember.x >= width || ember.y < 0) {
+          particles.splice(i, 1);
+        }
+      }
+    }
+    
+    function renderFire() {
+      if (!currentFireEffect) return;
+      
+      const width = currentFireEffect.width;
+      const height = currentFireEffect.height;
+      const buffer = currentFireEffect.fireBuffer;
+      const palette = currentFireEffect.palette;
+      const particles = currentFireEffect.particles;
+      
+      // Create an image data object
+      const imageData = effectCtx.createImageData(width, height);
+      
+      // Map heat values to colors and put them in the image data
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const index = y * width + x;
+          const colorIndex = Math.min(palette.length - 1, Math.floor(buffer[index]));
+          const color = palette[colorIndex];
+          
+          // Calculate image data index (4 bytes per pixel: R,G,B,A)
+          const imgDataIdx = (y * width + x) * 4;
+          
+          // Set the color
+          imageData.data[imgDataIdx] = color.r;
+          imageData.data[imgDataIdx + 1] = color.g;
+          imageData.data[imgDataIdx + 2] = color.b;
+          imageData.data[imgDataIdx + 3] = buffer[index] > 0 ? 255 : 0; // Transparent if no heat
+        }
+      }
+      
+      // Put the image data on the canvas
+      effectCtx.putImageData(imageData, 0, 0);
+      
+      // Draw embers on top of the fire
+      if (currentFireEffect.embersEnabled) {
+        effectCtx.globalCompositeOperation = 'lighter';
+        
+        for (const ember of particles) {
+          // Create a gradient for the ember
+          const gradient = effectCtx.createRadialGradient(
+            ember.x, ember.y, 0,
+            ember.x, ember.y, ember.size * 2
+          );
+          
+          // Ember color based on life (yellow-orange to red as it dies)
+          const alpha = ember.life * 0.7;
+          gradient.addColorStop(0, `rgba(255, 255, 200, ${alpha})`);
+          gradient.addColorStop(0.2, `rgba(255, 160, 20, ${alpha * 0.8})`);
+          gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
+          
+          // Draw the ember
+          effectCtx.fillStyle = gradient;
+          effectCtx.beginPath();
+          effectCtx.arc(ember.x, ember.y, ember.size * 2, 0, Math.PI * 2);
+          effectCtx.fill();
+        }
+        
+        // Reset composite operation
+        effectCtx.globalCompositeOperation = 'source-over';
+      }
+    }
+    
+    /*** BLOOD EFFECT ***/
+    
+    function initBloodEffect() {
+      // Create blood effect object
+      currentBloodEffect = {
+        // Blood parameters
+        gravity: 0.15,
+        viscosity: 0.92,
+        particleCount: 100,
+        particleSize: 3,
+        sprayForce: 10,
+        splatterSize: 5,
+        spread: 0.3,
+        colorVariation: 15,
+        enableDrips: true,
+        enablePooling: true,
+        particleColor: 'red',
+        customColor: '#ff0000',
+        
+        // Particles and splatters
+        particles: [],
+        splatters: [],
+        pools: [],
+        drips: [],
+        
+        // Mouse interactions
+        mouseDown: false,
+        mouseX: 0,
+        mouseY: 0,
+        lastMouseX: 0,
+        lastMouseY: 0,
+        
+        // Auto spray settings
+        autoSpray: true,
+        autoSprayTimer: 0,
+        autoSprayInterval: 30
+      };
+      
+      // Set up event listeners for canvas interactions
+      setupBloodCanvasEvents();
+      
+      // Event listeners for blood parameters
+      document.getElementById('bloodGravity').addEventListener('input', function() {
+        currentBloodEffect.gravity = parseFloat(this.value);
+      });
+      
+      document.getElementById('bloodViscosity').addEventListener('input', function() {
+        currentBloodEffect.viscosity = parseFloat(this.value);
+      });
+      
+      document.getElementById('bloodParticleCount').addEventListener('input', function() {
+        currentBloodEffect.particleCount = parseInt(this.value);
+      });
+      
+      document.getElementById('bloodParticleSize').addEventListener('input', function() {
+        currentBloodEffect.particleSize = parseInt(this.value);
+      });
+      
+      document.getElementById('bloodSprayForce').addEventListener('input', function() {
+        currentBloodEffect.sprayForce = parseInt(this.value);
+      });
+      
+      document.getElementById('bloodSpread').addEventListener('input', function() {
+        currentBloodEffect.spread = parseFloat(this.value);
+      });
+      
+      document.getElementById('dripsToggle').addEventListener('change', function() {
+        currentBloodEffect.enableDrips = this.checked;
+      });
+      
+      document.getElementById('poolingToggle').addEventListener('change', function() {
+        currentBloodEffect.enablePooling = this.checked;
+      });
+      
+      document.getElementById('bloodColor').addEventListener('change', function() {
+        currentBloodEffect.particleColor = this.value;
+      });
+      
+      document.getElementById('customBloodColor').addEventListener('input', function() {
+        currentBloodEffect.customColor = this.value;
+      });
+    }
+    
+    function setupBloodCanvasEvents() {
+      // Mouse events for blood effect
+      effectCanvas.addEventListener('mousedown', (e) => {
+        if (currentEffect !== 'blood') return;
+        
+        currentBloodEffect.mouseDown = true;
+        updateBloodMousePosition(e);
+        currentBloodEffect.lastMouseX = currentBloodEffect.mouseX;
+        currentBloodEffect.lastMouseY = currentBloodEffect.mouseY;
+        createBloodSpray(currentBloodEffect.mouseX, currentBloodEffect.mouseY, 0, 0);
+      });
+      
+      effectCanvas.addEventListener('mousemove', (e) => {
+        if (currentEffect !== 'blood') return;
+        
+        if (currentBloodEffect.mouseDown) {
+          const lastX = currentBloodEffect.mouseX;
+          const lastY = currentBloodEffect.mouseY;
+          updateBloodMousePosition(e);
+          
+          // Calculate velocity for direction
+          const velX = currentBloodEffect.mouseX - lastX;
+          const velY = currentBloodEffect.mouseY - lastY;
+          
+          // Create spray based on movement
+          if (Math.abs(velX) > 0.5 || Math.abs(velY) > 0.5) {
+            createBloodSpray(currentBloodEffect.mouseX, currentBloodEffect.mouseY, velX, velY);
+          }
+        }
+      });
+      
+      effectCanvas.addEventListener('mouseup', () => {
+        if (currentEffect !== 'blood') return;
+        currentBloodEffect.mouseDown = false;
+      });
+      
+      effectCanvas.addEventListener('mouseleave', () => {
+        if (currentEffect !== 'blood') return;
+        currentBloodEffect.mouseDown = false;
+      });
+    }
+    
+    function updateBloodMousePosition(e) {
+      const rect = effectCanvas.getBoundingClientRect();
+      currentBloodEffect.mouseX = e.clientX - rect.left;
+      currentBloodEffect.mouseY = e.clientY - rect.top;
+    }
+    
+    function getBloodColor() {
+      const colorType = currentBloodEffect.particleColor;
+      
+      switch(colorType) {
+        case 'red':
+          return [120 + Math.floor(Math.random() * currentBloodEffect.colorVariation), 
+                 0 + Math.floor(Math.random() * (currentBloodEffect.colorVariation * 0.4)), 
+                 0 + Math.floor(Math.random() * (currentBloodEffect.colorVariation * 0.2))];
+        case 'green':
+          return [0 + Math.floor(Math.random() * (currentBloodEffect.colorVariation * 0.2)), 
+                 120 + Math.floor(Math.random() * currentBloodEffect.colorVariation), 
+                 0 + Math.floor(Math.random() * (currentBloodEffect.colorVariation * 0.4))];
+        case 'blue':
+          return [0 + Math.floor(Math.random() * (currentBloodEffect.colorVariation * 0.2)), 
+                 0 + Math.floor(Math.random() * (currentBloodEffect.colorVariation * 0.4)), 
+                 120 + Math.floor(Math.random() * currentBloodEffect.colorVariation)];
+        case 'black':
+          return [0 + Math.floor(Math.random() * (currentBloodEffect.colorVariation * 0.5)), 
+                 0 + Math.floor(Math.random() * (currentBloodEffect.colorVariation * 0.5)), 
+                 0 + Math.floor(Math.random() * (currentBloodEffect.colorVariation * 0.5))];
+        case 'custom':
+          // Parse custom color
+          const hex = currentBloodEffect.customColor.replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16);
+          const g = parseInt(hex.substring(2, 4), 16);
+          const b = parseInt(hex.substring(4, 6), 16);
+          
+          // Add some variation
+          return [Math.max(0, Math.min(255, r + (Math.random() * 2 - 1) * currentBloodEffect.colorVariation)),
+                 Math.max(0, Math.min(255, g + (Math.random() * 2 - 1) * currentBloodEffect.colorVariation)),
+                 Math.max(0, Math.min(255, b + (Math.random() * 2 - 1) * currentBloodEffect.colorVariation))];
+      }
+    }
+    
+    function createBloodSpray(x, y, velX, velY) {
+      // Direction influence from velocity
+      const dirX = velX === 0 ? 0 : Math.sign(velX);
+      const dirY = velY === 0 ? 0 : Math.sign(velY);
+      const speed = Math.sqrt(velX * velX + velY * velY);
+      
+      for (let i = 0; i < currentBloodEffect.particleCount; i++) {
+        // Calculate random spray direction with influence from movement
+        const angle = Math.random() * Math.PI * 2;
+        const force = currentBloodEffect.sprayForce * (0.5 + Math.random() * 0.5);
+        
+        // Base velocities with randomness
+        let vx = Math.cos(angle) * force * currentBloodEffect.spread;
+        let vy = Math.sin(angle) * force * currentBloodEffect.spread;
+        
+        // Add influence from mouse movement
+        if (speed > 1) {
+          vx += dirX * force * (1 - currentBloodEffect.spread) * Math.random();
+          vy += dirY * force * (1 - currentBloodEffect.spread) * Math.random();
+        }
+        
+        // Random size variation
+        const size = currentBloodEffect.particleSize * (0.5 + Math.random());
+        
+        // Get color
+        const [r, g, b] = getBloodColor();
+        const color = `rgb(${r}, ${g}, ${b})`;
+        
+        // Add blood particle
+        currentBloodEffect.particles.push({
+          x: x + (Math.random() - 0.5) * 5,
+          y: y + (Math.random() - 0.5) * 5,
+          vx: vx,
+          vy: vy,
+          size: size,
+          color: color,
+          gravity: currentBloodEffect.gravity * (0.8 + Math.random() * 0.4),
+          life: 1.0, // Life percentage (1.0 = full life, 0.0 = dead)
+          decay: 0.01 + Math.random() * 0.02
+        });
+      }
+    }
+    
+    function createBloodSplatter(x, y, size, color) {
+      // Create a blood splatter at impact location
+      const splatterSize = size * currentBloodEffect.splatterSize;
+      
+      currentBloodEffect.splatters.push({
+        x: x,
+        y: y,
+        size: splatterSize,
+        color: color,
+        // Random shapes for splatters
+        shape: Math.floor(Math.random() * 3),
+        angle: Math.random() * Math.PI * 2,
+        // Stretch factor for directional impact
+        stretchX: 0.5 + Math.random(),
+        stretchY: 0.5 + Math.random(),
+        // How much it has dried/darkened (0 = fresh, 1 = dried)
+        dried: 0
+      });
+      
+      // Possibly create a drip
+      if (currentBloodEffect.enableDrips && Math.random() < 0.3) {
+        createBloodDrip(x, y, color);
+      }
+      
+      // Possibly create a pool below the splatter
+      if (currentBloodEffect.enablePooling && y > effectCanvas.height * 0.7 && Math.random() < 0.5) {
+        createBloodPool(x, y, splatterSize * 1.5, color);
+      }
+    }
+    
+    function createBloodDrip(x, y, color) {
+      const length = 10 + Math.random() * 30;
+      const width = 2 + Math.random() * 4;
+      
+      currentBloodEffect.drips.push({
+        x: x,
+        y: y,
+        targetY: y + length,
+        width: width,
+        color: color,
+        progress: 0,
+        speed: 0.005 + Math.random() * 0.01, // How fast it drips down
+        dried: 0
+      });
+    }
+    
+    function createBloodPool(x, y, size, color) {
+      currentBloodEffect.pools.push({
+        x: x,
+        y: y,
+        currentSize: 0,
+        targetSize: size * (1 + Math.random()),
+        growSpeed: 0.1 + Math.random() * 0.2,
+        color: color,
+        dried: 0
+      });
+    }
+    
+    function adjustColorForDrying(color, driedAmount) {
+      // Extract RGB components
+      const rgbMatch = color.match(/\d+/g);
+      if (!rgbMatch || rgbMatch.length < 3) return color;
+      
+      const r = parseInt(rgbMatch[0]);
+      const g = parseInt(rgbMatch[1]);
+      const b = parseInt(rgbMatch[2]);
+      
+      // Calculate dried color (darker, more brown)
+      const driedR = Math.max(0, Math.floor(r - (driedAmount * 80)));
+      const driedG = Math.max(0, Math.floor(g - (driedAmount * 10)));
+      const driedB = Math.max(0, Math.floor(b - (driedAmount * 10)));
+      
+      return `rgb(${driedR}, ${driedG}, ${driedB})`;
+    }
+    
+    function updateBloodEffect() {
+      if (!currentBloodEffect) return;
+      
+      // Check if we should auto-spray
+      if (currentBloodEffect.autoSpray) {
+        currentBloodEffect.autoSprayTimer++;
+        
+        if (currentBloodEffect.autoSprayTimer >= currentBloodEffect.autoSprayInterval) {
+          // Create a random spray
+          const x = Math.random() * effectCanvas.width;
+          const y = Math.random() * (effectCanvas.height / 2);
+          const velX = (Math.random() - 0.5) * 20;
+          const velY = Math.random() * 10;
+          
+          createBloodSpray(x, y, velX, velY);
+          
+          // Reset timer
+          currentBloodEffect.autoSprayTimer = 0;
+          
+          // Randomize next interval
+          currentBloodEffect.autoSprayInterval = 10 + Math.floor(Math.random() * 40);
+        }
+      }
+      
+      // Update particles
+      for (let i = currentBloodEffect.particles.length - 1; i >= 0; i--) {
+        const particle = currentBloodEffect.particles[i];
+        
+        // Apply physics
+        particle.vy += particle.gravity;
+        particle.vx *= currentBloodEffect.viscosity;
+        particle.vy *= currentBloodEffect.viscosity;
+        
+        // Update position
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        
+        // Check for collisions with bottom or sides
+        if (particle.y > effectCanvas.height - particle.size) {
+          // Bottom collision - create splatter
+          createBloodSplatter(particle.x, effectCanvas.height, particle.size, particle.color);
+          currentBloodEffect.particles.splice(i, 1);
+        } else if (particle.x < 0 || particle.x > effectCanvas.width) {
+          // Side collision - create splatter
+          const x = particle.x < 0 ? 0 : effectCanvas.width;
+          createBloodSplatter(x, particle.y, particle.size, particle.color);
+          currentBloodEffect.particles.splice(i, 1);
+        } else {
+          // Decay life
+          particle.life -= particle.decay;
+          if (particle.life <= 0) {
+            currentBloodEffect.particles.splice(i, 1);
+          }
+        }
+      }
+      
+      // Update drips
+      for (let i = currentBloodEffect.drips.length - 1; i >= 0; i--) {
+        const drip = currentBloodEffect.drips[i];
+        
+        // Grow drip down
+        drip.progress += drip.speed;
+        if (drip.progress >= 1) {
+          // When drip reaches target, it stops
+          drip.progress = 1;
+          // Slowly dry
+          drip.dried += 0.001;
+          
+          // Remove very dried drips
+          if (drip.dried > 0.7) {
+            currentBloodEffect.drips.splice(i, 1);
+          }
+        }
+      }
+      
+      // Update pools
+      for (let i = 0; i < currentBloodEffect.pools.length; i++) {
+        const pool = currentBloodEffect.pools[i];
+        
+        // Grow pool
+        if (pool.currentSize < pool.targetSize) {
+          pool.currentSize += pool.growSpeed;
+        } else {
+          // Slowly dry
+          pool.dried += 0.0005;
+        }
+      }
+      
+      // Update splatters
+      for (let i = 0; i < currentBloodEffect.splatters.length; i++) {
+        // Slowly dry
+        currentBloodEffect.splatters[i].dried += 0.0002;
+      }
+      
+      // Render blood
+      renderBlood();
+    }
+    
+    function renderBlood() {
+      // Draw particles
+      for (const particle of currentBloodEffect.particles) {
+        effectCtx.beginPath();
+        effectCtx.fillStyle = particle.color;
+        effectCtx.globalAlpha = particle.life;
+        effectCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        effectCtx.fill();
+      }
+      
+      // Draw splatters
+      for (const splatter of currentBloodEffect.splatters) {
+        // Darker color as it dries
+        const color = adjustColorForDrying(splatter.color, splatter.dried);
+        effectCtx.fillStyle = color;
+        effectCtx.globalAlpha = 1;
+        
+        effectCtx.save();
+        effectCtx.translate(splatter.x, splatter.y);
+        effectCtx.rotate(splatter.angle);
+        effectCtx.scale(splatter.stretchX, splatter.stretchY);
+        
+        // Different splatter shapes
+        switch (splatter.shape) {
+          case 0:
+            // Circular splatter
+            effectCtx.beginPath();
+            effectCtx.arc(0, 0, splatter.size, 0, Math.PI * 2);
+            effectCtx.fill();
+            break;
+          case 1:
+            // Star-like splatter
+            effectCtx.beginPath();
+            const points = 5 + Math.floor(Math.random() * 4);
+            for (let i = 0; i < points * 2; i++) {
+              const radius = i % 2 === 0 ? splatter.size : splatter.size * 0.5;
+              const angle = (i * Math.PI) / points;
+              const x = Math.cos(angle) * radius;
+              const y = Math.sin(angle) * radius;
+              if (i === 0) effectCtx.moveTo(x, y);
+              else effectCtx.lineTo(x, y);
+            }
+            effectCtx.closePath();
+            effectCtx.fill();
+            break;
+          case 2:
+            // Irregular blob
+            effectCtx.beginPath();
+            const segments = 8 + Math.floor(Math.random() * 5);
+            for (let i = 0; i <= segments; i++) {
+              const angle = (i / segments) * Math.PI * 2;
+              const radius = splatter.size * (0.7 + Math.random() * 0.6);
+              const x = Math.cos(angle) * radius;
+              const y = Math.sin(angle) * radius;
+              if (i === 0) effectCtx.moveTo(x, y);
+              else effectCtx.bezierCurveTo(
+                x - Math.random() * 10, y - Math.random() * 10,
+                x + Math.random() * 10, y + Math.random() * 10,
+                x, y
+              );
+            }
+            effectCtx.closePath();
+            effectCtx.fill();
+            break;
+        }
+        
+        effectCtx.restore();
+      }
+      
+      // Draw drips
+      for (const drip of currentBloodEffect.drips) {
+        const color = adjustColorForDrying(drip.color, drip.dried);
+        effectCtx.fillStyle = color;
+        effectCtx.globalAlpha = 1;
+        
+        // Calculate current height based on progress
+        const currentY = drip.y + (drip.targetY - drip.y) * drip.progress;
+        
+        // Draw drip as elongated teardrop
+        effectCtx.beginPath();
+        effectCtx.moveTo(drip.x - drip.width/2, drip.y);
+        effectCtx.bezierCurveTo(
+          drip.x - drip.width, drip.y + (currentY - drip.y) * 0.3,
+          drip.x - drip.width/3, currentY - drip.width,
+          drip.x, currentY
+        );
+        effectCtx.bezierCurveTo(
+          drip.x + drip.width/3, currentY - drip.width,
+          drip.x + drip.width, drip.y + (currentY - drip.y) * 0.3,
+          drip.x + drip.width/2, drip.y
+        );
+        effectCtx.closePath();
+        effectCtx.fill();
+      }
+      
+      // Draw pools
+      for (const pool of currentBloodEffect.pools) {
+        const color = adjustColorForDrying(pool.color, pool.dried);
+        effectCtx.fillStyle = color;
+        effectCtx.globalAlpha = 1;
+        
+        // Draw pool as irregular ellipse
+        effectCtx.beginPath();
+        const segments = 12;
+        for (let i = 0; i <= segments; i++) {
+          const angle = (i / segments) * Math.PI * 2;
+          // Make pool wider than tall
+          const radiusX = pool.currentSize * (1.2 + Math.sin(angle * 3) * 0.2);
+          const radiusY = pool.currentSize * (0.6 + Math.cos(angle * 2) * 0.1);
+          const x = pool.x + Math.cos(angle) * radiusX;
+          const y = pool.y + Math.sin(angle) * radiusY;
+          if (i === 0) effectCtx.moveTo(x, y);
+          else effectCtx.bezierCurveTo(
+            x - Math.random() * 5, y - Math.random() * 2,
+            x + Math.random() * 5, y + Math.random() * 2,
+            x, y
+          );
+        }
+        effectCtx.closePath();
+        effectCtx.fill();
+      }
+      
+      // Reset alpha
+      effectCtx.globalAlpha = 1;
+    }
+    
+    /*** SMOKE EFFECT ***/
+    
+    function initSmokeEffect() {
+      // Initialize smoke effect settings and particles
+      currentSmokeEffect = {
+        particles: [],
+        opacity: 0.6,
+        riseSpeed: 1.5,
+        density: 5,
+        turbulence: 3,
+        particleSize: 20,
+        smokeColor: 'white',
+        customColor: '#cccccc'
+      };
+      
+      // Event listeners for smoke parameters
+      document.getElementById('smokeOpacity').addEventListener('input', function() {
+        currentSmokeEffect.opacity = parseFloat(this.value);
+      });
+      
+      document.getElementById('smokeRiseSpeed').addEventListener('input', function() {
+        currentSmokeEffect.riseSpeed = parseFloat(this.value);
+      });
+      
+      document.getElementById('smokeDensity').addEventListener('input', function() {
+        currentSmokeEffect.density = parseInt(this.value);
+      });
+      
+      document.getElementById('smokeTurbulence').addEventListener('input', function() {
+        currentSmokeEffect.turbulence = parseInt(this.value);
+      });
+      
+      document.getElementById('smokeSize').addEventListener('input', function() {
+        currentSmokeEffect.particleSize = parseInt(this.value);
+      });
+      
+      document.getElementById('smokeColor').addEventListener('change', function() {
+        currentSmokeEffect.smokeColor = this.value;
+      });
+      
+      document.getElementById('customSmokeColor').addEventListener('input', function() {
+        currentSmokeEffect.customColor = this.value;
+      });
+    }
+    
+    function getSmokeColor() {
+      switch (currentSmokeEffect.smokeColor) {
+        case 'white':
+          return 'rgba(255, 255, 255, ';
+        case 'black':
+          return 'rgba(40, 40, 40, ';
+        case 'gray':
+          return 'rgba(150, 150, 150, ';
+        case 'custom':
+          // Parse custom color
+          const hex = currentSmokeEffect.customColor.replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16);
+          const g = parseInt(hex.substring(2, 4), 16);
+          const b = parseInt(hex.substring(4, 6), 16);
+          return `rgba(${r}, ${g}, ${b}, `;
+      }
+    }
+    
+    function createSmokeParticle() {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      
+      // Create new smoke particle
+      currentSmokeEffect.particles.push({
+        x: width / 2 + (Math.random() - 0.5) * width * 0.5,
+        y: height - Math.random() * 20,
+        size: Math.random() * currentSmokeEffect.particleSize + 10,
+        speedX: (Math.random() - 0.5) * 0.5,
+        speedY: -Math.random() * currentSmokeEffect.riseSpeed - 0.5,
+        opacity: Math.random() * currentSmokeEffect.opacity,
+        life: 1.0,
+        decay: 0.003 + Math.random() * 0.005
+      });
+    }
+    
+    function updateSmokeEffect() {
+      if (!currentSmokeEffect) return;
+      
+      // Add new smoke particles based on density
+      for (let i = 0; i < currentSmokeEffect.density; i++) {
+        if (Math.random() < 0.1) {
+          createSmokeParticle();
+        }
+      }
+      
+      // Update existing particles
+      for (let i = currentSmokeEffect.particles.length - 1; i >= 0; i--) {
+        const particle = currentSmokeEffect.particles[i];
+        
+        // Move the particle
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+        
+        // Add some turbulence
+        particle.speedX += (Math.random() - 0.5) * 0.01 * currentSmokeEffect.turbulence;
+        particle.speedY -= Math.random() * 0.01; // Acceleration upwards
+        
+        // Increase size as it rises
+        particle.size += 0.1;
+        
+        // Decay life
+        particle.life -= particle.decay;
+        
+        // Update opacity based on life
+        particle.opacity = Math.min(currentSmokeEffect.opacity, particle.life * currentSmokeEffect.opacity);
+        
+        // Remove dead particles
+        if (particle.life <= 0 || particle.y < -particle.size) {
+          currentSmokeEffect.particles.splice(i, 1);
+        }
+      }
+      
+      // Render smoke
+      renderSmoke();
+    }
+    
+    function renderSmoke() {
+      const particles = currentSmokeEffect.particles;
+      const baseColor = getSmokeColor();
+      
+      // Sort particles by size (for proper layering - larger particles behind smaller ones)
+      particles.sort((a, b) => b.size - a.size);
+      
+      // Draw smoke particles
+      for (const particle of particles) {
+        effectCtx.beginPath();
+        
+        // Create radial gradient for each particle
+        const gradient = effectCtx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, particle.size
+        );
+        
+        // Set gradient colors
+        gradient.addColorStop(0, baseColor + particle.opacity + ')');
+        gradient.addColorStop(1, baseColor + '0)');
+        
+        effectCtx.fillStyle = gradient;
+        effectCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        effectCtx.fill();
+      }
+    }
+    
+    /*** EXPLOSION EFFECT ***/
+    
+    function initExplosionEffect() {
+      currentExplosionEffect = {
+        particles: [],
+        shockwaves: [],
+        smokeParticles: [],
+        size: 5,
+        speed: 5,
+        particleCount: 200,
+        colorScheme: 'fire',
+        includeSmoke: true,
+        includeShockwave: true,
+        loop: false,
+        // Animation state
+        phase: 'initial', // initial, explosion, fade, reset
+        timer: 0,
+        explosionDuration: 60, // frames
+        fadeDuration: 30, // frames
+        resetDuration: 30 // frames
+      };
+      
+      // Event listeners for explosion parameters
+      document.getElementById('explosionSize').addEventListener('input', function() {
+        currentExplosionEffect.size = parseInt(this.value);
+      });
+      
+      document.getElementById('explosionSpeed').addEventListener('input', function() {
+        currentExplosionEffect.speed = parseInt(this.value);
+      });
+      
+      document.getElementById('explosionParticles').addEventListener('input', function() {
+        currentExplosionEffect.particleCount = parseInt(this.value);
+      });
+      
+      document.getElementById('explosionColor').addEventListener('change', function() {
+        currentExplosionEffect.colorScheme = this.value;
+      });
+      
+      document.getElementById('explosionSmoke').addEventListener('change', function() {
+        currentExplosionEffect.includeSmoke = this.checked;
+      });
+      
+      document.getElementById('explosionShockwave').addEventListener('change', function() {
+        currentExplosionEffect.includeShockwave = this.checked;
+      });
+      
+      document.getElementById('explosionLoop').addEventListener('change', function() {
+        currentExplosionEffect.loop = this.checked;
+      });
+      
+      // Trigger initial explosion
+      triggerExplosion();
+    }
+    
+    function getExplosionColor(position, scheme) {
+      // Position from 0 (center/hot) to 1 (edge/cool)
+      switch (scheme) {
+        case 'fire':
+          if (position < 0.2) return `rgba(255, 255, 255, ${1 - position * 5})`;
+          if (position < 0.5) return `rgba(255, 255, 0, ${1 - position})`;
+          return `rgba(255, ${Math.floor(140 * (1 - position))}, 0, ${1 - position})`;
+        
+        case 'energy':
+          if (position < 0.2) return `rgba(255, 255, 255, ${1 - position * 5})`;
+          if (position < 0.5) return `rgba(200, 230, 255, ${1 - position})`;
+          return `rgba(0, ${Math.floor(120 * (1 - position))}, 255, ${1 - position})`;
+        
+        case 'toxic':
+          if (position < 0.2) return `rgba(230, 255, 150, ${1 - position * 5})`;
+          if (position < 0.5) return `rgba(160, 255, 0, ${1 - position})`;
+          return `rgba(${Math.floor(100 * (1 - position))}, 200, 0, ${1 - position})`;
+        
+        case 'magic':
+          if (position < 0.2) return `rgba(255, 200, 255, ${1 - position * 5})`;
+          if (position < 0.5) return `rgba(220, 120, 255, ${1 - position})`;
+          return `rgba(180, 0, ${Math.floor(200 * (1 - position))}, ${1 - position})`;
+      }
+    }
+    
+    function triggerExplosion() {
+      // Clear existing particles
+      currentExplosionEffect.particles = [];
+      currentExplosionEffect.shockwaves = [];
+      currentExplosionEffect.smokeParticles = [];
+      
+      // Reset state
+      currentExplosionEffect.phase = 'explosion';
+      currentExplosionEffect.timer = 0;
+      
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const size = currentExplosionEffect.size;
+      
+      // Create explosion particles
+      for (let i = 0; i < currentExplosionEffect.particleCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 10 * size;
+        const speed = (0.5 + Math.random() * 1.5) * currentExplosionEffect.speed;
+        
+        currentExplosionEffect.particles.push({
+          x: centerX,
+          y: centerY,
+          size: 1 + Math.random() * size * 2,
+          speedX: Math.cos(angle) * speed,
+          speedY: Math.sin(angle) * speed,
+          distance: 0,
+          maxDistance: distance,
+          angle: angle,
+          life: 1.0,
+          decay: 0.01 + Math.random() * 0.02
+        });
+      }
+      
+      // Create shockwave if enabled
+      if (currentExplosionEffect.includeShockwave) {
+        currentExplosionEffect.shockwaves.push({
+          x: centerX,
+          y: centerY,
+          size: 10,
+          targetSize: 100 * size,
+          growth: 2 * currentExplosionEffect.speed,
+          opacity: 1
+        });
+      }
+      
+      // Create initial smoke particles if enabled
+      if (currentExplosionEffect.includeSmoke) {
+        for (let i = 0; i < currentExplosionEffect.particleCount / 2; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const distance = Math.random() * 20 * size;
+          const speed = (0.2 + Math.random() * 0.8) * currentExplosionEffect.speed;
+          
+          currentExplosionEffect.smokeParticles.push({
+            x: centerX,
+            y: centerY,
+            size: 5 + Math.random() * size * 3,
+            speedX: Math.cos(angle) * speed * 0.5,
+            speedY: Math.sin(angle) * speed * 0.5,
+            opacity: 0.7,
+            life: 1.0,
+            decay: 0.005 + Math.random() * 0.01
+          });
+        }
+      }
+    }
+    
+    function updateExplosionEffect() {
+      if (!currentExplosionEffect) return;
+      
+      // Update based on current phase
+      currentExplosionEffect.timer++;
+      
+      switch (currentExplosionEffect.phase) {
+        case 'initial':
+          // Waiting for trigger
+          if (Math.random() < 0.01) {
+            triggerExplosion();
+          }
+          break;
+          
+        case 'explosion':
+          // Update explosion particles
+          for (let i = currentExplosionEffect.particles.length - 1; i >= 0; i--) {
+            const particle = currentExplosionEffect.particles[i];
+            
+            // Update position
+            particle.x += particle.speedX;
+            particle.y += particle.speedY;
+            
+            // Calculate distance from center
+            const dx = particle.x - effectCanvas.width / 2;
+            const dy = particle.y - effectCanvas.height / 2;
+            particle.distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Apply deceleration as particles move outward
+            const deceleration = 0.97;
+            particle.speedX *= deceleration;
+            particle.speedY *= deceleration;
+            
+            // Apply gravity
+            particle.speedY += 0.05;
+            
+            // Decay life
+            particle.life -= particle.decay;
+            
+            // Remove dead particles
+            if (particle.life <= 0) {
+              currentExplosionEffect.particles.splice(i, 1);
+            }
+          }
+          
+          // Update shockwaves
+          for (let i = currentExplosionEffect.shockwaves.length - 1; i >= 0; i--) {
+            const shockwave = currentExplosionEffect.shockwaves[i];
+            
+            // Grow the shockwave
+            shockwave.size += shockwave.growth;
+            
+            // Fade out as it grows
+            shockwave.opacity = Math.max(0, 1 - shockwave.size / shockwave.targetSize);
+            
+            // Remove completed shockwaves
+            if (shockwave.size >= shockwave.targetSize) {
+              currentExplosionEffect.shockwaves.splice(i, 1);
+            }
+          }
+          
+          // Update smoke particles
+          for (let i = currentExplosionEffect.smokeParticles.length - 1; i >= 0; i--) {
+            const smoke = currentExplosionEffect.smokeParticles[i];
+            
+            // Update position
+            smoke.x += smoke.speedX;
+            smoke.y += smoke.speedY;
+            
+            // Slow down
+            smoke.speedX *= 0.98;
+            smoke.speedY *= 0.98;
+            
+            // Grow in size
+            smoke.size += 0.2;
+            
+            // Rise upward
+            smoke.speedY -= 0.01;
+            
+            // Add turbulence
+            smoke.speedX += (Math.random() - 0.5) * 0.1;
+            
+            // Decay life
+            smoke.life -= smoke.decay;
+            smoke.opacity = Math.min(0.7, smoke.life * 0.7);
+            
+            // Remove dead smoke
+            if (smoke.life <= 0) {
+              currentExplosionEffect.smokeParticles.splice(i, 1);
+            }
+          }
+          
+          // Check if explosion phase is complete
+          if (currentExplosionEffect.timer >= currentExplosionEffect.explosionDuration) {
+            currentExplosionEffect.phase = 'fade';
+            currentExplosionEffect.timer = 0;
+          }
+          break;
+          
+        case 'fade':
+          // Continue updating remaining particles
+          updateExplosionParticles();
+          
+          // Check if fade phase is complete
+          if (currentExplosionEffect.timer >= currentExplosionEffect.fadeDuration) {
+            currentExplosionEffect.phase = 'reset';
+            currentExplosionEffect.timer = 0;
+          }
+          break;
+          
+        case 'reset':
+          // Brief pause before next explosion (if looping)
+          if (currentExplosionEffect.timer >= currentExplosionEffect.resetDuration) {
+            if (currentExplosionEffect.loop) {
+              triggerExplosion();
+            } else {
+              currentExplosionEffect.phase = 'initial';
+            }
+          }
+          break;
+      }
+      
+      // Render explosion
+      renderExplosion();
+    }
+    
+    function updateExplosionParticles() {
+      // Update remaining particles
+      for (let i = currentExplosionEffect.particles.length - 1; i >= 0; i--) {
+        const particle = currentExplosionEffect.particles[i];
+        
+        // Update position
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+        
+        // Apply gravity
+        particle.speedY += 0.05;
+        
+        // Decay life faster during fade
+        particle.life -= particle.decay * 1.5;
+        
+        // Remove dead particles
+        if (particle.life <= 0) {
+          currentExplosionEffect.particles.splice(i, 1);
+        }
+      }
+      
+      // Update smoke particles
+      for (let i = currentExplosionEffect.smokeParticles.length - 1; i >= 0; i--) {
+        const smoke = currentExplosionEffect.smokeParticles[i];
+        
+        smoke.x += smoke.speedX;
+        smoke.y += smoke.speedY;
+        smoke.speedY -= 0.01; // Rise
+        smoke.life -= smoke.decay;
+        smoke.opacity = Math.min(0.7, smoke.life * 0.7);
+        
+        if (smoke.life <= 0) {
+          currentExplosionEffect.smokeParticles.splice(i, 1);
+        }
+      }
+    }
+    
+    function renderExplosion() {
+      // Draw smoke first (behind everything)
+      if (currentExplosionEffect.includeSmoke) {
+        for (const smoke of currentExplosionEffect.smokeParticles) {
+          effectCtx.beginPath();
+          const gradient = effectCtx.createRadialGradient(
+            smoke.x, smoke.y, 0,
+            smoke.x, smoke.y, smoke.size
+          );
+          
+          const alpha = smoke.opacity;
+          gradient.addColorStop(0, `rgba(100, 100, 100, ${alpha})`);
+          gradient.addColorStop(1, `rgba(70, 70, 70, 0)`);
+          
+          effectCtx.fillStyle = gradient;
+          effectCtx.arc(smoke.x, smoke.y, smoke.size, 0, Math.PI * 2);
+          effectCtx.fill();
+        }
+      }
+      
+      // Draw shockwaves
+      for (const shockwave of currentExplosionEffect.shockwaves) {
+        effectCtx.beginPath();
+        effectCtx.strokeStyle = `rgba(255, 255, 255, ${shockwave.opacity})`;
+        effectCtx.lineWidth = 3;
+        effectCtx.arc(shockwave.x, shockwave.y, shockwave.size, 0, Math.PI * 2);
+        effectCtx.stroke();
+      }
+      
+      // Draw explosion particles
+      effectCtx.globalCompositeOperation = 'lighter';
+      
+      for (const particle of currentExplosionEffect.particles) {
+        // Position from center determines color
+        const width = effectCanvas.width;
+        const height = effectCanvas.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        
+        const dx = particle.x - centerX;
+        const dy = particle.y - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const maxDistance = 100 * currentExplosionEffect.size;
+        const position = Math.min(1, distance / maxDistance);
+        
+        // Get color based on scheme and position
+        const color = getExplosionColor(position, currentExplosionEffect.colorScheme);
+        
+        // Draw particle
+        effectCtx.beginPath();
+        effectCtx.fillStyle = color;
+        effectCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        effectCtx.fill();
+      }
+      
+      // Reset composite operation
+      effectCtx.globalCompositeOperation = 'source-over';
+    }
+    
+    /*** MAGIC EFFECT ***/
+    
+    function initMagicEffect() {
+      currentMagicEffect = {
+        particles: [],
+        type: 'sparkles',
+        intensity: 5,
+        speed: 5,
+        colorScheme: 'arcane',
+        glowIntensity: 5,
+        pulseEnabled: true,
+        pulsePhase: 0
+      };
+      
+      // Event listeners for magic effect parameters
+      document.getElementById('magicType').addEventListener('change', function() {
+        currentMagicEffect.type = this.value;
+        initializeMagicParticles();
+      });
+      
+      document.getElementById('magicIntensity').addEventListener('input', function() {
+        currentMagicEffect.intensity = parseInt(this.value);
+      });
+      
+      document.getElementById('magicSpeed').addEventListener('input', function() {
+        currentMagicEffect.speed = parseInt(this.value);
+      });
+      
+      document.getElementById('magicColor').addEventListener('change', function() {
+        currentMagicEffect.colorScheme = this.value;
+      });
+      
+      document.getElementById('magicGlow').addEventListener('input', function() {
+        currentMagicEffect.glowIntensity = parseInt(this.value);
+      });
+      
+      document.getElementById('magicPulse').addEventListener('change', function() {
+        currentMagicEffect.pulseEnabled = this.checked;
+      });
+      
+      // Initialize particles based on selected type
+      initializeMagicParticles();
+    }
+    
+    function initializeMagicParticles() {
+      if (!currentMagicEffect) return;
+      
+      // Clear existing particles
+      currentMagicEffect.particles = [];
+      
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const intensity = currentMagicEffect.intensity;
+      
+      // Create particles based on effect type
+      switch (currentMagicEffect.type) {
+        case 'sparkles':
+          // Create random sparkle particles
+          for (let i = 0; i < 20 * intensity; i++) {
+            currentMagicEffect.particles.push({
+              x: Math.random() * width,
+              y: Math.random() * height,
+              size: 0.5 + Math.random() * 2.5,
+              speedX: (Math.random() - 0.5) * 2,
+              speedY: (Math.random() - 0.5) * 2,
+              alpha: Math.random(),
+              alphaSpeed: 0.01 + Math.random() * 0.05,
+              rotation: Math.random() * Math.PI * 2,
+              rotationSpeed: (Math.random() - 0.5) * 0.1
+            });
+          }
+          break;
+          
+        case 'aura':
+          // Create circular aura
+          const auraRadius = Math.min(width, height) * 0.3;
+          for (let i = 0; i < 30 * intensity; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = auraRadius * (0.8 + Math.random() * 0.4);
+            
+            currentMagicEffect.particles.push({
+              x: centerX + Math.cos(angle) * distance,
+              y: centerY + Math.sin(angle) * distance,
+              angle: angle,
+              distance: distance,
+              baseDistance: distance,
+              size: 2 + Math.random() * 4,
+              alpha: 0.3 + Math.random() * 0.7,
+              alphaSpeed: 0.01 + Math.random() * 0.03,
+              rotationSpeed: 0.002 + Math.random() * 0.01 * (Math.random() > 0.5 ? 1 : -1)
+            });
+          }
+          break;
+          
+        case 'bolts':
+          // Create energy bolts
+          for (let i = 0; i < 8 * intensity; i++) {
+            const bolt = {
+              segments: [],
+              alpha: 0.7 + Math.random() * 0.3,
+              alphaSpeed: 0.02 + Math.random() * 0.03,
+              lifespan: 20 + Math.floor(Math.random() * 30),
+              age: 0
+            };
+            
+            // Create bolt segments
+            const startAngle = Math.random() * Math.PI * 2;
+            const length = 30 + Math.random() * 40 * (intensity / 5);
+            
+            bolt.segments.push({
+              x: centerX,
+              y: centerY,
+              angle: startAngle
+            });
+            
+            let currentX = centerX;
+            let currentY = centerY;
+            let currentAngle = startAngle;
+            
+            const numSegments = 5 + Math.floor(Math.random() * 5);
+            for (let j = 0; j < numSegments; j++) {
+              // Add some variation to the angle
+              currentAngle += (Math.random() - 0.5) * 1.5;
+              
+              // Calculate new position
+              const segmentLength = length / numSegments;
+              currentX += Math.cos(currentAngle) * segmentLength;
+              currentY += Math.sin(currentAngle) * segmentLength;
+              
+              bolt.segments.push({
+                x: currentX,
+                y: currentY,
+                angle: currentAngle
+              });
+            }
+            
+            currentMagicEffect.particles.push(bolt);
+          }
+          break;
+          
+        case 'portal':
+          // Create portal effect
+          const portalRadius = Math.min(width, height) * 0.25;
+          
+          // Create portal ring
+          for (let i = 0; i < 60; i++) {
+            const angle = (i / 60) * Math.PI * 2;
+            currentMagicEffect.particles.push({
+              type: 'ring',
+              angle: angle,
+              x: centerX + Math.cos(angle) * portalRadius,
+              y: centerY + Math.sin(angle) * portalRadius,
+              radius: portalRadius,
+              size: 3 + Math.random() * 2,
+              alpha: 0.7 + Math.random() * 0.3,
+              rotationSpeed: 0.005 * (Math.random() > 0.5 ? 1 : -1)
+            });
+          }
+          
+          // Create energy particles
+          for (let i = 0; i < 40 * intensity; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = portalRadius * Math.random();
+            
+            currentMagicEffect.particles.push({
+              type: 'energy',
+              x: centerX + Math.cos(angle) * distance,
+              y: centerY + Math.sin(angle) * distance,
+              angle: Math.random() * Math.PI * 2,
+              speed: 0.2 + Math.random() * 2,
+              size: 1 + Math.random() * 3,
+              alpha: 0.5 + Math.random() * 0.5,
+              alphaSpeed: 0.02 + Math.random() * 0.05
+            });
+          }
+          break;
+      }
+    }
+    
+    function getMagicColor(scheme, position = 0) {
+      // Position from 0 to 1 controls gradient within a color scheme
+      switch (scheme) {
+        case 'arcane':
+          // Purple/pink hues
+          if (position < 0.3) return [180, 100, 255];
+          if (position < 0.6) return [150, 50, 220];
+          return [100, 0, 180];
+          
+        case 'nature':
+          // Green/earthy tones
+          if (position < 0.3) return [200, 255, 150];
+          if (position < 0.6) return [100, 220, 50];
+          return [50, 180, 0];
+          
+        case 'fire':
+          // Red/orange tones
+          if (position < 0.3) return [255, 200, 100];
+          if (position < 0.6) return [255, 150, 50];
+          return [220, 50, 0];
+          
+        case 'ice':
+          // Blue/cyan tones
+          if (position < 0.3) return [200, 240, 255];
+          if (position < 0.6) return [150, 200, 255];
+          return [50, 150, 220];
+          
+        case 'holy':
+          // Gold/white tones
+          if (position < 0.3) return [255, 255, 220];
+          if (position < 0.6) return [255, 240, 150];
+          return [220, 180, 50];
+          
+        case 'void':
+          // Dark purple/black tones
+          if (position < 0.3) return [100, 30, 150];
+          if (position < 0.6) return [70, 10, 100];
+          return [40, 0, 60];
+      }
+    }
+    
+    function updateMagicEffect() {
+      if (!currentMagicEffect) return;
+      
+      // Update pulse phase
+      if (currentMagicEffect.pulseEnabled) {
+        currentMagicEffect.pulsePhase += 0.05;
+        if (currentMagicEffect.pulsePhase > Math.PI * 2) {
+          currentMagicEffect.pulsePhase -= Math.PI * 2;
+        }
+      }
+      
+      const pulseValue = currentMagicEffect.pulseEnabled ? 
+        0.7 + Math.sin(currentMagicEffect.pulsePhase) * 0.3 : 1;
+      
+      const speedFactor = currentMagicEffect.speed / 5;
+      
+      // Update based on effect type
+      switch (currentMagicEffect.type) {
+        case 'sparkles':
+          updateSparkles(pulseValue, speedFactor);
+          break;
+        case 'aura':
+          updateAura(pulseValue, speedFactor);
+          break;
+        case 'bolts':
+          updateBolts(pulseValue, speedFactor);
+          break;
+        case 'portal':
+          updatePortal(pulseValue, speedFactor);
+          break;
+      }
+      
+      // Render magic effect
+      renderMagicEffect(pulseValue);
+    }
+    
+    function updateSparkles(pulseValue, speedFactor) {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      
+      for (let i = 0; i < currentMagicEffect.particles.length; i++) {
+        const particle = currentMagicEffect.particles[i];
+        
+        // Update position
+        particle.x += particle.speedX * speedFactor;
+        particle.y += particle.speedY * speedFactor;
+        
+        // Update rotation
+        particle.rotation += particle.rotationSpeed * speedFactor;
+        
+        // Pulsate alpha
+        particle.alpha += particle.alphaSpeed * (Math.random() > 0.5 ? 1 : -1);
+        particle.alpha = Math.max(0.1, Math.min(1, particle.alpha));
+        
+        // Wrap around screen
+        if (particle.x < 0) particle.x = width;
+        if (particle.x > width) particle.x = 0;
+        if (particle.y < 0) particle.y = height;
+        if (particle.y > height) particle.y = 0;
+      }
+      
+      // Add new particles occasionally
+      if (Math.random() < 0.1 * pulseValue) {
+        currentMagicEffect.particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          size: 0.5 + Math.random() * 2.5,
+          speedX: (Math.random() - 0.5) * 2,
+          speedY: (Math.random() - 0.5) * 2,
+          alpha: Math.random(),
+          alphaSpeed: 0.01 + Math.random() * 0.05,
+          rotation: Math.random() * Math.PI * 2,
+          rotationSpeed: (Math.random() - 0.5) * 0.1
+        });
+      }
+    }
+    
+    function updateAura(pulseValue, speedFactor) {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      for (let i = 0; i < currentMagicEffect.particles.length; i++) {
+        const particle = currentMagicEffect.particles[i];
+        
+        // Rotate around center
+        particle.angle += particle.rotationSpeed * speedFactor;
+        
+        // Pulsate distance
+        if (currentMagicEffect.pulseEnabled) {
+          particle.distance = particle.baseDistance * pulseValue;
+        }
+        
+        // Update position
+        particle.x = centerX + Math.cos(particle.angle) * particle.distance;
+        particle.y = centerY + Math.sin(particle.angle) * particle.distance;
+        
+        // Pulsate alpha
+        particle.alpha += particle.alphaSpeed * (Math.random() > 0.5 ? 1 : -1);
+        particle.alpha = Math.max(0.1, Math.min(1, particle.alpha));
+      }
+    }
+    
+    function updateBolts(pulseValue, speedFactor) {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Update existing bolts
+      for (let i = currentMagicEffect.particles.length - 1; i >= 0; i--) {
+        const bolt = currentMagicEffect.particles[i];
+        
+        // Increase age
+        bolt.age += speedFactor;
+        
+        // Fade out based on age
+        if (bolt.age > bolt.lifespan * 0.7) {
+          bolt.alpha -= bolt.alphaSpeed * speedFactor;
+        }
+        
+        // Remove old bolts
+        if (bolt.alpha <= 0 || bolt.age >= bolt.lifespan) {
+          currentMagicEffect.particles.splice(i, 1);
+        }
+      }
+      
+      // Add new bolts occasionally
+      if (currentMagicEffect.particles.length < 8 * currentMagicEffect.intensity * pulseValue && 
+          Math.random() < 0.1 * speedFactor) {
+        
+        const bolt = {
+          segments: [],
+          alpha: 0.7 + Math.random() * 0.3,
+          alphaSpeed: 0.02 + Math.random() * 0.03,
+          lifespan: 20 + Math.floor(Math.random() * 30),
+          age: 0
+        };
+        
+        // Create bolt segments
+        const startAngle = Math.random() * Math.PI * 2;
+        const length = 30 + Math.random() * 40 * (currentMagicEffect.intensity / 5);
+        
+        bolt.segments.push({
+          x: centerX,
+          y: centerY,
+          angle: startAngle
+        });
+        
+        let currentX = centerX;
+        let currentY = centerY;
+        let currentAngle = startAngle;
+        
+        const numSegments = 5 + Math.floor(Math.random() * 5);
+        for (let j = 0; j < numSegments; j++) {
+          // Add some variation to the angle
+          currentAngle += (Math.random() - 0.5) * 1.5;
+          
+          // Calculate new position
+          const segmentLength = length / numSegments;
+          currentX += Math.cos(currentAngle) * segmentLength;
+          currentY += Math.sin(currentAngle) * segmentLength;
+          
+          bolt.segments.push({
+            x: currentX,
+            y: currentY,
+            angle: currentAngle
+          });
+        }
+        
+        currentMagicEffect.particles.push(bolt);
+      }
+    }
+    
+    function updatePortal(pulseValue, speedFactor) {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      for (let i = 0; i < currentMagicEffect.particles.length; i++) {
+        const particle = currentMagicEffect.particles[i];
+        
+        if (particle.type === 'ring') {
+          // Rotate ring particles
+          particle.angle += particle.rotationSpeed * speedFactor;
+          
+          // Update position
+          particle.x = centerX + Math.cos(particle.angle) * particle.radius * pulseValue;
+          particle.y = centerY + Math.sin(particle.angle) * particle.radius * pulseValue;
+        } else if (particle.type === 'energy') {
+          // Move energy particles
+          particle.x += Math.cos(particle.angle) * particle.speed * speedFactor;
+          particle.y += Math.sin(particle.angle) * particle.speed * speedFactor;
+          
+          // Pulsate alpha
+          particle.alpha += particle.alphaSpeed * (Math.random() > 0.5 ? 1 : -1);
+          particle.alpha = Math.max(0.1, Math.min(1, particle.alpha));
+          
+          // Check if particle is too far from center
+          const dx = particle.x - centerX;
+          const dy = particle.y - centerY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance > particle.radius * 1.5) {
+            // Reset to a new random position in the portal
+            const newAngle = Math.random() * Math.PI * 2;
+            const newDistance = Math.random() * particle.radius * 0.8;
+            
+            particle.x = centerX + Math.cos(newAngle) * newDistance;
+            particle.y = centerY + Math.sin(newAngle) * newDistance;
+            particle.angle = Math.random() * Math.PI * 2;
+          }
+        }
+      }
+    }
+    
+    function renderMagicEffect(pulseValue) {
+      // Apply glow effect
+      effectCtx.shadowBlur = currentMagicEffect.glowIntensity * 2 * pulseValue;
+      effectCtx.globalCompositeOperation = 'lighter';
+      
+      // Get primary and secondary colors for the scheme
+      const [r1, g1, b1] = getMagicColor(currentMagicEffect.colorScheme, 0.2);
+      const [r2, g2, b2] = getMagicColor(currentMagicEffect.colorScheme, 0.8);
+      
+      // Set shadow color based on scheme
+      effectCtx.shadowColor = `rgb(${r1}, ${g1}, ${b1})`;
+      
+      // Render based on effect type
+      switch (currentMagicEffect.type) {
+        case 'sparkles':
+          renderSparkles(r1, g1, b1, r2, g2, b2, pulseValue);
+          break;
+        case 'aura':
+          renderAura(r1, g1, b1, r2, g2, b2, pulseValue);
+          break;
+        case 'bolts':
+          renderBolts(r1, g1, b1, r2, g2, b2, pulseValue);
+          break;
+        case 'portal':
+          renderPortal(r1, g1, b1, r2, g2, b2, pulseValue);
+          break;
+      }
+      
+      // Reset composite operation and shadow
+      effectCtx.globalCompositeOperation = 'source-over';
+      effectCtx.shadowBlur = 0;
+    }
+    
+    function renderSparkles(r1, g1, b1, r2, g2, b2, pulseValue) {
+      for (const particle of currentMagicEffect.particles) {
+        effectCtx.save();
+        effectCtx.translate(particle.x, particle.y);
+        effectCtx.rotate(particle.rotation);
+        
+        const alpha = particle.alpha * pulseValue;
+        
+        // Draw sparkle (star shape)
+        effectCtx.beginPath();
+        
+        for (let i = 0; i < 5; i++) {
+          const angle = (i * Math.PI * 2) / 5;
+          const outerRadius = particle.size * 2;
+          const innerRadius = particle.size * 0.5;
+          
+          effectCtx.lineTo(Math.cos(angle) * outerRadius, Math.sin(angle) * outerRadius);
+          effectCtx.lineTo(
+            Math.cos(angle + Math.PI / 5) * innerRadius,
+            Math.sin(angle + Math.PI / 5) * innerRadius
+          );
+        }
+        
+        effectCtx.closePath();
+        effectCtx.fillStyle = `rgba(${r1}, ${g1}, ${b1}, ${alpha})`;
+        effectCtx.fill();
+        
+        // Draw center dot
+        effectCtx.beginPath();
+        effectCtx.arc(0, 0, particle.size * 0.5, 0, Math.PI * 2);
+        effectCtx.fillStyle = `rgba(${r2}, ${g2}, ${b2}, ${alpha})`;
+        effectCtx.fill();
+        
+        effectCtx.restore();
+      }
+    }
+    
+    function renderAura(r1, g1, b1, r2, g2, b2, pulseValue) {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Draw aura glow
+      const radius = Math.min(width, height) * 0.3 * pulseValue;
+      const gradient = effectCtx.createRadialGradient(
+        centerX, centerY, radius * 0.2,
+        centerX, centerY, radius
+      );
+      
+      gradient.addColorStop(0, `rgba(${r1}, ${g1}, ${b1}, 0.4)`);
+      gradient.addColorStop(0.7, `rgba(${r2}, ${g2}, ${b2}, 0.1)`);
+      gradient.addColorStop(1, `rgba(${r2}, ${g2}, ${b2}, 0)`);
+      
+      effectCtx.beginPath();
+      effectCtx.fillStyle = gradient;
+      effectCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      effectCtx.fill();
+      
+      // Draw particles
+      for (const particle of currentMagicEffect.particles) {
+        const alpha = particle.alpha * pulseValue;
+        
+        effectCtx.beginPath();
+        effectCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        effectCtx.fillStyle = `rgba(${r1}, ${g1}, ${b1}, ${alpha})`;
+        effectCtx.fill();
+      }
+    }
+    
+    function renderBolts(r1, g1, b1, r2, g2, b2, pulseValue) {
+      // Draw bolts
+      for (const bolt of currentMagicEffect.particles) {
+        const alpha = bolt.alpha * pulseValue;
+        
+        // Set line style
+        effectCtx.strokeStyle = `rgba(${r1}, ${g1}, ${b1}, ${alpha})`;
+        effectCtx.lineWidth = 2 * pulseValue;
+        
+        // Draw main bolt
+        effectCtx.beginPath();
+        effectCtx.moveTo(bolt.segments[0].x, bolt.segments[0].y);
+        
+        for (let i = 1; i < bolt.segments.length; i++) {
+          effectCtx.lineTo(bolt.segments[i].x, bolt.segments[i].y);
+        }
+        
+        effectCtx.stroke();
+        
+        // Draw glow
+        effectCtx.strokeStyle = `rgba(${r2}, ${g2}, ${b2}, ${alpha * 0.5})`;
+        effectCtx.lineWidth = 5 * pulseValue;
+        effectCtx.stroke();
+        
+        // Draw connection points
+        for (const segment of bolt.segments) {
+          effectCtx.beginPath();
+          effectCtx.arc(segment.x, segment.y, 2 * pulseValue, 0, Math.PI * 2);
+          effectCtx.fillStyle = `rgba(${r1}, ${g1}, ${b1}, ${alpha})`;
+          effectCtx.fill();
+        }
+      }
+    }
+    
+    function renderPortal(r1, g1, b1, r2, g2, b2, pulseValue) {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Draw portal background
+      const portalRadius = Math.min(width, height) * 0.25 * pulseValue;
+      const gradient = effectCtx.createRadialGradient(
+        centerX, centerY, 0,
+        centerX, centerY, portalRadius
+      );
+      
+      gradient.addColorStop(0, `rgba(${r1}, ${g1}, ${b1}, 0.7)`);
+      gradient.addColorStop(0.5, `rgba(${r2}, ${g2}, ${b2}, 0.3)`);
+      gradient.addColorStop(1, `rgba(${r2}, ${g2}, ${b2}, 0)`);
+      
+      effectCtx.beginPath();
+      effectCtx.fillStyle = gradient;
+      effectCtx.arc(centerX, centerY, portalRadius, 0, Math.PI * 2);
+      effectCtx.fill();
+      
+      // Draw particles
+      for (const particle of currentMagicEffect.particles) {
+        const alpha = particle.alpha * pulseValue;
+        
+        if (particle.type === 'ring') {
+          // Ring particles
+          effectCtx.beginPath();
+          effectCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          effectCtx.fillStyle = `rgba(${r1}, ${g1}, ${b1}, ${alpha})`;
+          effectCtx.fill();
+        } else if (particle.type === 'energy') {
+          // Energy particles
+          effectCtx.beginPath();
+          effectCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          effectCtx.fillStyle = `rgba(${r2}, ${g2}, ${b2}, ${alpha})`;
+          effectCtx.fill();
+        }
+      }
+      
+      // Draw portal ring
+      effectCtx.beginPath();
+      effectCtx.arc(centerX, centerY, portalRadius, 0, Math.PI * 2);
+      effectCtx.strokeStyle = `rgba(${r1}, ${g1}, ${b1}, 0.8)`;
+      effectCtx.lineWidth = 3 * pulseValue;
+      effectCtx.stroke();
+    }
+    
+    /*** WATER EFFECT ***/
+    
+    function initWaterEffect() {
+      currentWaterEffect = {
+        particles: [],
+        type: 'splash',
+        viscosity: 0.95,
+        speed: 5,
+        particleCount: 200,
+        color: 'clear',
+        customColor: '#4a8eff',
+        transparency: 0.7,
+        reflectionEnabled: true,
+        
+        // Animation state
+        phase: 'active',
+        timer: 0
+      };
+      
+      // Event listeners for water parameters
+      document.getElementById('waterType').addEventListener('change', function() {
+        currentWaterEffect.type = this.value;
+        initializeWaterParticles();
+      });
+      
+      document.getElementById('waterViscosity').addEventListener('input', function() {
+        currentWaterEffect.viscosity = parseFloat(this.value);
+      });
+      
+      document.getElementById('waterSpeed').addEventListener('input', function() {
+        currentWaterEffect.speed = parseInt(this.value);
+      });
+      
+      document.getElementById('waterParticles').addEventListener('input', function() {
+        currentWaterEffect.particleCount = parseInt(this.value);
+      });
+      
+      document.getElementById('waterColor').addEventListener('change', function() {
+        currentWaterEffect.color = this.value;
+      });
+      
+      document.getElementById('customWaterColor').addEventListener('input', function() {
+        currentWaterEffect.customColor = this.value;
+      });
+      
+      document.getElementById('waterTransparency').addEventListener('input', function() {
+        currentWaterEffect.transparency = parseFloat(this.value);
+      });
+      
+      document.getElementById('waterReflection').addEventListener('change', function() {
+        currentWaterEffect.reflectionEnabled = this.checked;
+      });
+      
+      // Initialize water particles
+      initializeWaterParticles();
+    }
+    
+    function initializeWaterParticles() {
+      if (!currentWaterEffect) return;
+      
+      // Clear existing particles
+      currentWaterEffect.particles = [];
+      
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      // Create particles based on effect type
+      switch (currentWaterEffect.type) {
+        case 'splash':
+          // Create splash particles
+          for (let i = 0; i < currentWaterEffect.particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1 + Math.random() * 5;
+            
+            currentWaterEffect.particles.push({
+              x: centerX,
+              y: centerY,
+              size: 2 + Math.random() * 4,
+              speedX: Math.cos(angle) * speed,
+              speedY: Math.sin(angle) * speed - 5, // Initial upward velocity
+              gravity: 0.2,
+              alpha: 0.7 + Math.random() * 0.3,
+              trail: []
+            });
+          }
+          break;
+          
+        case 'drip':
+          // Create water drips
+          for (let i = 0; i < currentWaterEffect.particleCount / 10; i++) {
+            createWaterDrip();
+          }
+          break;
+          
+        case 'flow':
+          // Create flowing water particles
+          for (let i = 0; i < currentWaterEffect.particleCount; i++) {
+            currentWaterEffect.particles.push({
+              x: Math.random() * width,
+              y: Math.random() * height,
+              size: 1 + Math.random() * 3,
+              speedX: 0.5 + Math.random() * 1.5,
+              speedY: 0.1 + Math.random() * 0.5,
+              alpha: 0.3 + Math.random() * 0.7,
+              wavePhase: Math.random() * Math.PI * 2,
+              waveAmplitude: 0.5 + Math.random() * 1.5
+            });
+          }
+          break;
+          
+        case 'ripple':
+          // Create ripple waves
+          for (let i = 0; i < 10; i++) {
+            currentWaterEffect.particles.push({
+              x: centerX,
+              y: centerY,
+              radius: 10 + i * 15,
+              targetRadius: 100 + i * 20,
+              thickness: 2,
+              alpha: 1 - i * 0.1,
+              speed: 0.5 + Math.random() * 0.5
+            });
+          }
+          break;
+      }
+    }
+    
+    function createWaterDrip() {
+      const width = effectCanvas.width;
+      const startX = Math.random() * width;
+      
+      currentWaterEffect.particles.push({
+        x: startX,
+        y: 0,
+        size: 3 + Math.random() * 5,
+        length: 10 + Math.random() * 20,
+        speedY: 1 + Math.random() * 2,
+        alpha: 0.6 + Math.random() * 0.4,
+        droplets: [],
+        readyToDrop: false,
+        dropDelay: 30 + Math.floor(Math.random() * 60)
+      });
+    }
+    
+    function getWaterColor(alpha = 1) {
+      switch (currentWaterEffect.color) {
+        case 'clear':
+          return `rgba(74, 142, 255, ${alpha * currentWaterEffect.transparency})`;
+        case 'deep':
+          return `rgba(0, 80, 180, ${alpha * currentWaterEffect.transparency})`;
+        case 'murky':
+          return `rgba(100, 125, 130, ${alpha * currentWaterEffect.transparency})`;
+        case 'toxic':
+          return `rgba(80, 220, 75, ${alpha * currentWaterEffect.transparency})`;
+        case 'custom':
+          // Parse custom color
+          const hex = currentWaterEffect.customColor.replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16);
+          const g = parseInt(hex.substring(2, 4), 16);
+          const b = parseInt(hex.substring(4, 6), 16);
+          return `rgba(${r}, ${g}, ${b}, ${alpha * currentWaterEffect.transparency})`;
+      }
+    }
+    
+    function updateWaterEffect() {
+      if (!currentWaterEffect) return;
+      
+      const speedFactor = currentWaterEffect.speed / 5;
+      
+      // Update based on effect type
+      switch (currentWaterEffect.type) {
+        case 'splash':
+          updateWaterSplash(speedFactor);
+          break;
+        case 'drip':
+          updateWaterDrip(speedFactor);
+          break;
+        case 'flow':
+          updateWaterFlow(speedFactor);
+          break;
+        case 'ripple':
+          updateWaterRipple(speedFactor);
+          break;
+      }
+      
+      // Render water effect
+      renderWaterEffect();
+    }
+    
+    function updateWaterSplash(speedFactor) {
+      const height = effectCanvas.height;
+      
+      for (let i = currentWaterEffect.particles.length - 1; i >= 0; i--) {
+        const particle = currentWaterEffect.particles[i];
+        
+        // Add position to trail (limited length)
+        particle.trail.push({x: particle.x, y: particle.y});
+        if (particle.trail.length > 5) {
+          particle.trail.shift();
+        }
+        
+        // Update position
+        particle.x += particle.speedX * speedFactor;
+        particle.y += particle.speedY * speedFactor;
+        
+        // Apply gravity
+        particle.speedY += particle.gravity * speedFactor;
+        
+        // Apply resistance
+        particle.speedX *= currentWaterEffect.viscosity;
+        particle.speedY *= currentWaterEffect.viscosity;
+        
+        // Check for ground collision
+        if (particle.y > height - particle.size) {
+          // Bounce with energy loss
+          particle.y = height - particle.size;
+          particle.speedY = -particle.speedY * 0.6;
+          
+          // Reduce horizontal speed (friction)
+          particle.speedX *= 0.8;
+          
+          // Remove very slow particles
+          if (Math.abs(particle.speedY) < 0.5) {
+            currentWaterEffect.particles.splice(i, 1);
+          }
+        }
+      }
+      
+      // Reset if all particles are gone
+      if (currentWaterEffect.particles.length === 0) {
+        initializeWaterParticles();
+      }
+    }
+    
+    function updateWaterDrip(speedFactor) {
+      const height = effectCanvas.height;
+      
+      for (let i = currentWaterEffect.particles.length - 1; i >= 0; i--) {
+        const drip = currentWaterEffect.particles[i];
+        
+        // Update drip position
+        drip.y += drip.speedY * speedFactor;
+        
+        // Check if it's time to create a droplet
+        if (!drip.readyToDrop) {
+          drip.dropDelay -= speedFactor;
+          if (drip.dropDelay <= 0) {
+            drip.readyToDrop = true;
+          }
+        }
+        
+        // Create droplet if ready and at bottom of drip
+        if (drip.readyToDrop && drip.y > drip.length && Math.random() < 0.03 * speedFactor) {
+          drip.droplets.push({
+            x: drip.x,
+            y: drip.y + drip.length,
+            size: drip.size * 0.7,
+            speedY: 1 + Math.random() * 3,
+            alpha: drip.alpha
+          });
+          
+          // Reset drip length
+          drip.length = 3 + Math.random() * 8;
+          drip.readyToDrop = false;
+          drip.dropDelay = 10 + Math.floor(Math.random() * 20);
+        } else {
+          // Increase length until ready to drop
+          drip.length += 0.1 * speedFactor;
+        }
+        
+        // Update droplets
+        for (let j = drip.droplets.length - 1; j >= 0; j--) {
+          const droplet = drip.droplets[j];
+          
+          // Update droplet position
+          droplet.y += droplet.speedY * speedFactor;
+          
+          // Remove droplets that fall off screen
+          if (droplet.y > height) {
+            drip.droplets.splice(j, 1);
+          }
+        }
+        
+        // Create new drips occasionally
+        if (currentWaterEffect.particles.length < currentWaterEffect.particleCount / 10 && 
+            Math.random() < 0.02 * speedFactor) {
+          createWaterDrip();
+        }
+      }
+    }
+    
+    function updateWaterFlow(speedFactor) {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      
+      for (let i = currentWaterEffect.particles.length - 1; i >= 0; i--) {
+        const particle = currentWaterEffect.particles[i];
+        
+        // Update position
+        particle.x += particle.speedX * speedFactor;
+        particle.y += particle.speedY * speedFactor;
+        
+        // Add wave motion
+        particle.wavePhase += 0.1 * speedFactor;
+        particle.x += Math.sin(particle.wavePhase) * particle.waveAmplitude;
+        
+        // Wrap around screen
+        if (particle.x > width) {
+          particle.x = 0;
+        }
+        
+        if (particle.y > height) {
+          particle.y = 0;
+          particle.x = Math.random() * width;
+        }
+      }
+    }
+    
+    function updateWaterRipple(speedFactor) {
+      const width = effectCanvas.width;
+      const height = effectCanvas.height;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      let allComplete = true;
+      
+      for (let i = currentWaterEffect.particles.length - 1; i >= 0; i--) {
+        const ripple = currentWaterEffect.particles[i];
+        
+        // Expand ripple
+        ripple.radius += ripple.speed * speedFactor;
+        
+        // Fade out as it expands
+        ripple.alpha = Math.max(0, 1 - (ripple.radius / ripple.targetRadius));
+        
+        // Check if ripple is complete
+        if (ripple.radius < ripple.targetRadius) {
+          allComplete = false;
+        }
+      }
+      
+      // Reset ripples if all complete
+      if (allComplete) {
+        initializeWaterParticles();
+      }
+      
+      // Create new ripple occasionally
+      if (Math.random() < 0.01 * speedFactor) {
+        const x = centerX + (Math.random() - 0.5) * width * 0.5;
+        const y = centerY + (Math.random() - 0.5) * height * 0.5;
+        
+        // Add a new small ripple
+        currentWaterEffect.particles.push({
+          x: x,
+          y: y,
+          radius: 5,
+          targetRadius: 30 + Math.random() * 30,
+          thickness: 1.5,
+          alpha: 0.7 + Math.random() * 0.3,
+          speed: 0.3 + Math.random() * 0.3
+        });
+      }
+    }
+    
+    function renderWaterEffect() {
+      // Set water properties
+      const baseColor = getWaterColor(1);
+      const lightColor = getWaterColor(0.7);
+      
+      // Apply transparency settings
+      effectCtx.globalAlpha = currentWaterEffect.transparency;
+      
+      // Add reflections if enabled
+      if (currentWaterEffect.reflectionEnabled) {
+        effectCtx.shadowColor = lightColor;
+        effectCtx.shadowBlur = 5;
+      }
+      
+      switch (currentWaterEffect.type) {
+        case 'splash':
+          renderWaterSplash(baseColor, lightColor);
+          break;
+        case 'drip':
+          renderWaterDrip(baseColor, lightColor);
+          break;
+        case 'flow':
+          renderWaterFlow(baseColor, lightColor);
+          break;
+        case 'ripple':
+          renderWaterRipple(baseColor, lightColor);
+          break;
+      }
+      
+      // Reset properties
+      effectCtx.globalAlpha = 1;
+      effectCtx.shadowBlur = 0;
+    }
+    
+    function renderWaterSplash(baseColor, lightColor) {
+      // Draw water particles
+      for (const particle of currentWaterEffect.particles) {
+        // Draw particle trails (for motion blur effect)
+        if (particle.trail.length > 1) {
+          effectCtx.beginPath();
+          effectCtx.moveTo(particle.trail[0].x, particle.trail[0].y);
+          
+          for (let i = 1; i < particle.trail.length; i++) {
+            effectCtx.lineTo(particle.trail[i].x, particle.trail[i].y);
+          }
+          
+          effectCtx.lineWidth = particle.size / 2;
+          effectCtx.strokeStyle = lightColor;
+          effectCtx.stroke();
+        }
+        
+        // Draw the particle
+        effectCtx.beginPath();
+        effectCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        effectCtx.fillStyle = baseColor;
+        effectCtx.fill();
+        
+        // Draw highlight
+        effectCtx.beginPath();
+        effectCtx.arc(
+          particle.x - particle.size * 0.3, 
+          particle.y - particle.size * 0.3, 
+          particle.size * 0.4, 
+          0, Math.PI * 2
+        );
+        effectCtx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        effectCtx.fill();
+      }
+    }
+    
+    function renderWaterDrip(baseColor, lightColor) {
+      for (const drip of currentWaterEffect.particles) {
+        // Draw the drip
+        effectCtx.beginPath();
+        effectCtx.fillStyle = baseColor;
+        
+        // Teardrop shape for the drip
+        const width = drip.size;
+        const height = drip.length;
+        
+        // Draw drip body (rounded rectangle)
+        effectCtx.roundRect(
+          drip.x - width/2, 
+          drip.y, 
+          width, 
+          height, 
+          [0, 0, width/2, width/2]
+        );
+        effectCtx.fill();
+        
+        // Draw droplets
+        for (const droplet of drip.droplets) {
+          // Teardrop shape for droplets
+          effectCtx.beginPath();
+          effectCtx.arc(droplet.x, droplet.y, droplet.size, 0, Math.PI * 2);
+          effectCtx.fillStyle = baseColor;
+          effectCtx.fill();
+          
+          // Add highlight
+          effectCtx.beginPath();
+          effectCtx.arc(
+            droplet.x - droplet.size * 0.3, 
+            droplet.y - droplet.size * 0.3, 
+            droplet.size * 0.4, 
+            0, Math.PI * 2
+          );
+          effectCtx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+          effectCtx.fill();
+        }
+      }
+    }
+    
+    function renderWaterFlow(baseColor, lightColor) {
+      // Draw flowing water particles
+      for (const particle of currentWaterEffect.particles) {
+        effectCtx.beginPath();
+        effectCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        effectCtx.fillStyle = baseColor;
+        effectCtx.fill();
+        
+        // Draw trail (elongated in direction of movement)
+        effectCtx.beginPath();
+        effectCtx.ellipse(
+          particle.x - particle.speedX * 2, 
+          particle.y - particle.speedY * 2,
+          particle.size * 0.8,
+          particle.size * 1.5,
+          Math.atan2(particle.speedY, particle.speedX),
+          0, Math.PI * 2
+        );
+        effectCtx.fillStyle = lightColor;
+        effectCtx.fill();
+      }
+    }
+    
+    function renderWaterRipple(baseColor, lightColor) {
+      for (const ripple of currentWaterEffect.particles) {
+        // Draw ripple circle
+        effectCtx.beginPath();
+        effectCtx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+        effectCtx.strokeStyle = `rgba(74, 142, 255, ${ripple.alpha * currentWaterEffect.transparency})`;
+        effectCtx.lineWidth = ripple.thickness;
+        effectCtx.stroke();
+        
+        // Draw secondary ripple for effect
+        effectCtx.beginPath();
+        effectCtx.arc(ripple.x, ripple.y, ripple.radius * 0.8, 0, Math.PI * 2);
+        effectCtx.strokeStyle = `rgba(255, 255, 255, ${ripple.alpha * 0.5 * currentWaterEffect.transparency})`;
+        effectCtx.lineWidth = ripple.thickness * 0.5;
+        effectCtx.stroke();
+      }
+    }
+    
+    // Helper function: HSL to RGB conversion
+    function hslToRgb(h, s, l) {
+      h /= 360;
+      s /= 100;
+      l /= 100;
+      
+      let r, g, b;
+      
+      if (s === 0) {
+        r = g = b = l; // achromatic
+      } else {
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+        
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+  </script>
+</body>
+</html>
