@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebGPU Blood Spray Effect</title>
+  <script type = "module">
+    import { WebGPUBloodSimulation } from './blood_gpu.js';
+  </script>
+  <style>
+    body {
+      background: #222;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      color: #FFF;
+    }
+    canvas {
+      border: 1px solid #333;
+      margin-bottom: 20px;
+      background: #000;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+      max-width: 800px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    label {
+      margin-bottom: 5px;
+    }
+    button {
+      padding: 8px 16px;
+      background: #8B0000;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 0 5px;
+    }
+    button:hover {
+      background: #A00000;
+    }
+    #bloodCanvas {
+      cursor: crosshair;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .status {
+      background: rgba(50, 50, 50, 0.8);
+      padding: 10px 20px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .status span {
+      font-weight: bold;
+    }
+    .status.success {
+      color: #90ee90;
+    }
+    .status.error {
+      color: #ff6666;
+    }
+    .performance {
+      background: rgba(30, 30, 30, 0.8);
+      padding: 8px 16px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebGPU Blood Spray Simulation</h1>
+  
+  <div id="statusBox" class="status">
+    Initializing WebGPU...
+  </div>
+  
+  <div class="action-buttons">
+    <button id="clearBtn">Clear Canvas</button>
+    <button id="randomSprayBtn">Random Spray</button>
+    <button id="burstBtn">Blood Burst</button>
+    <button id="pauseBtn">Pause</button>
+  </div>
+  
+  <canvas id="bloodCanvas" width="800" height="500"></canvas>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label for="gravitySlider">Gravity</label>
+      <input type="range" id="gravitySlider" min="0.01" max="0.5" value="0.15" step="0.01">
+    </div>
+    
+    <div class="control-group">
+      <label for="viscositySlider">Viscosity</label>
+      <input type="range" id="viscositySlider" min="0.75" max="0.99" value="0.92" step="0.01">
+    </div>
+    
+    <div class="control-group">
+      <label for="particleCountSlider">Particle Count</label>
+      <input type="range" id="particleCountSlider" min="10000" max="100000" value="50000">
+      <span id="particleCountValue">50,000</span>
+    </div>
+    
+    <div class="control-group">
+      <label for="sprayForceSlider">Spray Force</label>
+      <input type="range" id="sprayForceSlider" min="5" max="30" value="15">
+    </div>
+  </div>
+  
+  <div class="performance">
+    <div>Active Particles: <span id="activeParticleCount">0</span></div>
+    <div>FPS: <span id="fpsCounter">0</span></div>
+  </div>
+  
+  <p>Click and drag on the canvas to create blood spray. Using WebGPU for GPU-accelerated physics!</p>
+  
+  <script>
+    // The WebGPU implementation will be loaded externally
+    
+
+    // Simple FPS counter
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let fps = 0;
+    
+    function updateFPS() {
+      const now = performance.now();
+      const elapsed = now - lastTime;
+      
+      if (elapsed >= 1000) {
+        fps = Math.round((frameCount * 1000) / elapsed);
+        document.getElementById('fpsCounter').textContent = fps;
+        frameCount = 0;
+        lastTime = now;
+      }
+      
+      frameCount++;
+      requestAnimationFrame(updateFPS);
+    }
+    
+    // Start FPS counter
+    updateFPS();
+    
+    // Fallback Canvas2D implementation for browsers without WebGPU
+    class CanvasBloodEffect {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.width = canvas.width;
+        this.height = canvas.height;
+        
+        // Blood parameters
+        this.gravity = 0.15;
+        this.viscosity = 0.92;
+        this.particleCount = 5000;
+        this.particleSize = 3;
+        this.sprayForce = 15;
+        
+        // Animation state
+        this.paused = false;
+        this.animationId = null;
+        
+        // Particles
+        this.particles = [];
+        
+        // Mouse interactions
+        this.mouseDown = false;
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.lastMouseX = 0;
+        this.lastMouseY = 0;
+        
+        // Initialize event listeners
+        this.initEvents();
+      }
+      
+      initEvents() {
+        this.canvas.addEventListener('mousedown', (e) => {
+          this.mouseDown = true;
+          this.updateMousePosition(e);
+          this.lastMouseX = this.mouseX;
+          this.lastMouseY = this.mouseY;
+          this.createSpray(this.mouseX, this.mouseY, 0, 0);
+        });
+        
+        this.canvas.addEventListener('mousemove', (e) => {
+          if (this.mouseDown) {
+            const lastX = this.mouseX;
+            const lastY = this.mouseY;
+            this.updateMousePosition(e);
+            
+            // Calculate velocity for direction
+            const velX = this.mouseX - lastX;
+            const velY = this.mouseY - lastY;
+            
+            // Create spray based on movement
+            if (Math.abs(velX) > 0.5 || Math.abs(velY) > 0.5) {
+              this.createSpray(this.mouseX, this.mouseY, velX, velY);
+            }
+          }
+        });
+        
+        this.canvas.addEventListener('mouseup', () => {
+          this.mouseDown = false;
+        });
+        
+        this.canvas.addEventListener('mouseleave', () => {
+          this.mouseDown = false;
+        });
+      }
+      
+      updateMousePosition(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.mouseX = e.clientX - rect.left;
+        this.mouseY = e.clientY - rect.top;
+      }
+      
+      createSpray(x, y, velX, velY) {
+        // Direction influence from velocity
+        const dirX = velX === 0 ? 0 : Math.sign(velX);
+        const dirY = velY === 0 ? 0 : Math.sign(velY);
+        const speed = Math.sqrt(velX * velX + velY * velY);
+        
+        const sprayCount = Math.min(500, this.particleCount);
+        
+        for (let i = 0; i < sprayCount; i++) {
+          // Calculate random spray direction with influence from movement
+          const angle = Math.random() * Math.PI * 2;
+          const force = this.sprayForce * (0.5 + Math.random() * 0.5);
+          
+          // Base velocities with randomness
+          let vx = Math.cos(angle) * force * 0.3;
+          let vy = Math.sin(angle) * force * 0.3;
+          
+          // Add influence from mouse movement
+          if (speed > 1) {
+            vx += dirX * force * 0.7 * Math.random();
+            vy += dirY * force * 0.7 * Math.random();
+          }
+          
+          // Random size variation
+          const size = this.particleSize * (0.5 + Math.random());
+          
+          // Random color variation (darker/lighter red)
+          const r = 120 + Math.floor(Math.random() * 80);
+          const g = Math.floor(Math.random() * 30);
+          const b = Math.floor(Math.random() * 20);
+          const color = `rgb(${r}, ${g}, ${b})`;
+          
+          // Add blood particle
+          this.particles.push({
+            x: x + (Math.random() - 0.5) * 5,
+            y: y + (Math.random() - 0.5) * 5,
+            vx: vx,
+            vy: vy,
+            size: size,
+            color: color,
+            gravity: this.gravity * (0.8 + Math.random() * 0.4),
+            life: 1.0 // Life percentage (1.0 = full life, 0.0 = dead)
+          });
+        }
+        
+        // Limit total particles
+        if (this.particles.length > this.particleCount) {
+          this.particles.splice(0, this.particles.length - this.particleCount);
+        }
+        
+        // Update particle counter
+        document.getElementById('activeParticleCount').textContent = this.particles.length.toLocaleString();
+      }
+      
+      createRandomSpray() {
+        const x = Math.random() * this.width;
+        const y = Math.random() * (this.height / 2);
+        const velX = (Math.random() - 0.5) * 20;
+        const velY = Math.random() * 10;
+        this.createSpray(x, y, velX, velY);
+      }
+      
+      createBloodBurst() {
+        const x = this.width / 2 + (Math.random() - 0.5) * 200;
+        const y = this.height / 2 + (Math.random() - 0.5) * 100;
+        
+        // Create multiple sprays for a burst effect
+        for (let i = 0; i < 5; i++) {
+          const offsetX = (Math.random() - 0.5) * 20;
+          const offsetY = (Math.random() - 0.5) * 20;
+          this.createSpray(x + offsetX, y + offsetY, 0, 0);
+        }
+      }
+      
+      updatePhysics() {
+        // Clear canvas
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        // Update particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const particle = this.particles[i];
+          
+          // Apply physics
+          particle.vy += particle.gravity;
+          particle.vx *= this.viscosity;
+          particle.vy *= this.viscosity;
+          
+          // Update position
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          
+          // Check for collisions with bottom or sides
+          if (particle.y > this.height || particle.x < 0 || particle.x > this.width) {
+            this.particles.splice(i, 1);
+            continue;
+          }
+          
+          // Draw particle
+          this.ctx.beginPath();
+          this.ctx.fillStyle = particle.color;
+          this.ctx.globalAlpha = particle.life;
+          this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          this.ctx.fill();
+          
+          // Decay life
+          particle.life -= 0.005;
+          if (particle.life <= 0) {
+            this.particles.splice(i, 1);
+          }
+        }
+        
+        // Reset alpha
+        this.ctx.globalAlpha = 1;
+        
+        // Update particle counter
+        document.getElementById('activeParticleCount').textContent = this.particles.length.toLocaleString();
+      }
+      
+      animate() {
+        if (this.paused) return;
+        
+        // Update physics and render
+        this.updatePhysics();
+        
+        // Schedule next frame
+        this.animationId = requestAnimationFrame(() => this.animate());
+      }
+      
+      start() {
+        this.paused = false;
+        if (!this.animationId) {
+          this.animate();
+        }
+      }
+      
+      pause() {
+        this.paused = true;
+        if (this.animationId) {
+          cancelAnimationFrame(this.animationId);
+          this.animationId = null;
+        }
+      }
+      
+      togglePause() {
+        if (this.paused) {
+          this.start();
+        } else {
+          this.pause();
+        }
+      }
+      
+      clear() {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        this.particles = [];
+        document.getElementById('activeParticleCount').textContent = "0";
+      }
+      
+      // Parameter setters
+      setGravity(value) {
+        this.gravity = value;
+      }
+      
+      setViscosity(value) {
+        this.viscosity = value;
+      }
+      
+      setParticleCount(value) {
+        this.particleCount = value;
+      }
+      
+      setSprayForce(value) {
+        this.sprayForce = value;
+      }
+    }
+    
+    // Initialize the appropriate implementation based on WebGPU support
+    document.addEventListener('DOMContentLoaded', async () => {
+      const canvas = document.getElementById('bloodCanvas');
+      const statusBox = document.getElementById('statusBox');
+      let bloodSim;
+      
+      try {
+        // Check for WebGPU support
+        if (!navigator.gpu) {
+          throw new Error("WebGPU not supported on this browser.");
+        }
+        
+        // Try to load WebGPU implementation
+        // In a real implementation, this would be where we'd initialize WebGPUBloodSimulation
+        // For demo purposes, throw an error to show fallback behavior
+        
+        if (typeof WebGPUBloodSimulation !== 'undefined') {
+          bloodSim = new WebGPUBloodSimulation(canvas);
+          statusBox.textContent = "Using WebGPU for hardware-accelerated simulation!";
+          statusBox.className = "status success";
+        } else {
+          throw new Error("WebGPU implementation not found. Falling back to Canvas2D.");
+        }
+      } catch (error) {
+        console.warn("WebGPU initialization failed:", error);
+        statusBox.textContent = "WebGPU not available. Using Canvas2D fallback (lower performance).";
+        statusBox.className = "status error";
+        
+        // Fallback to Canvas2D implementation
+        bloodSim = new CanvasBloodEffect(canvas);
+        bloodSim.start();
+        
+        // Update particle count slider for fallback
+        const particleCountSlider = document.getElementById('particleCountSlider');
+        particleCountSlider.min = "1000";
+        particleCountSlider.max = "10000";
+        particleCountSlider.value = "5000";
+        document.getElementById('particleCountValue').textContent = "5,000";
+      }
+      
+      // Connect UI controls
+      document.getElementById('gravitySlider').addEventListener('input', function() {
+        bloodSim.setGravity(parseFloat(this.value));
+      });
+      
+      document.getElementById('viscositySlider').addEventListener('input', function() {
+        bloodSim.setViscosity(parseFloat(this.value));
+      });
+      
+      document.getElementById('particleCountSlider').addEventListener('input', function() {
+        bloodSim.setParticleCount(parseInt(this.value));
+        document.getElementById('particleCountValue').textContent = parseInt(this.value).toLocaleString();
+      });
+      
+      document.getElementById('sprayForceSlider').addEventListener('input', function() {
+        bloodSim.setSprayForce(parseInt(this.value));
+      });
+      
+      document.getElementById('clearBtn').addEventListener('click', function() {
+        bloodSim.clear();
+      });
+      
+      document.getElementById('randomSprayBtn').addEventListener('click', function() {
+        bloodSim.createRandomSpray();
+      });
+      
+      document.getElementById('burstBtn').addEventListener('click', function() {
+        bloodSim.createBloodBurst();
+      });
+      
+      document.getElementById('pauseBtn').addEventListener('click', function() {
+        bloodSim.togglePause();
+        this.textContent = bloodSim.paused ? 'Resume' : 'Pause';
+      });
+    });
+  </script>
+</body>
+</html>
