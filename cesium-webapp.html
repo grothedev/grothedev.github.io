@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive CesiumJS Globe Explorer</title>
+
+    <!-- Import Cesium from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cesium/1.105.0/Cesium.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cesium/1.105.0/Widgets/widgets.min.css" rel="stylesheet">
+
+    <style>
+        html, body, #cesiumContainer {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 999;
+            background-color: rgba(40, 40, 40, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 300px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .control-panel h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+
+        button {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #3b77db;
+        }
+
+        .locations-dropdown {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            background-color: #444;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+
+        .feature-container {
+            margin-top: 10px;
+        }
+
+        .toggle-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #4285F4;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .coordinates-display {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            background-color: rgba(40, 40, 40, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 999;
+            font-size: 12px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 24px;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4285F4;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+
+    <div class="control-panel">
+        <h2>Globe Explorer</h2>
+
+        <div>
+            <label for="locations">Famous Locations:</label>
+            <select id="locations" class="locations-dropdown">
+                <option value="">Select a location...</option>
+                <option value="eiffel">Eiffel Tower, Paris</option>
+                <option value="grandcanyon">Grand Canyon, USA</option>
+                <option value="pyramids">Pyramids of Giza, Egypt</option>
+                <option value="everest">Mount Everest</option>
+                <option value="sydney">Sydney Opera House</option>
+                <option value="colosseum">Colosseum, Rome</option>
+                <option value="amazon">Amazon Rainforest</option>
+            </select>
+        </div>
+
+        <div class="feature-container">
+            <div class="toggle-control">
+                <span>3D Buildings</span>
+                <label class="switch">
+                    <input type="checkbox" id="buildingsToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-control">
+                <span>Atmosphere</span>
+                <label class="switch">
+                    <input type="checkbox" id="atmosphereToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-control">
+                <span>Day/Night Cycle</span>
+                <label class="switch">
+                    <input type="checkbox" id="timeToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px;">
+            <button id="flyHomeBtn">Fly Home</button>
+            <button id="addPinBtn">Drop Pin</button>
+        </div>
+    </div>
+
+    <div class="coordinates-display" id="coordinates">
+        Latitude: 0.000°<br>
+        Longitude: 0.000°<br>
+        Altitude: 0m
+    </div>
+
+    <script>
+
+        // Your Cesium ion token - for a real app, you would want to use your own
+        Cesium.Ion.defaultAccessToken = '';
+        let GLOBE_SWITCH_HEIGHT = 1000000;
+
+        // Initialize the Cesium Viewer
+        const viewer = new Cesium.Viewer('cesiumContainer', {
+            terrainProvider: Cesium.createWorldTerrain(),
+            imageryProvider: Cesium.createWorldImagery({
+                style: Cesium.IonWorldImageryStyle.AERIAL_WITH_LABELS
+            }),
+            animation: false,
+            baseLayerPicker: true,
+            fullscreenButton: true,
+            geocoder: true,
+            homeButton: false,
+            infoBox: true,
+            sceneModePicker: true,
+            selectionIndicator: true,
+            timeline: false,
+            navigationHelpButton: true,
+            scene3DOnly: false,
+            shadows: true
+        });
+
+        // Enable terrain and lighting effects
+        viewer.scene.globe.enableLighting = true;
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+
+        // Set up camera movement handler to update coordinates display
+        const coordsDisplay = document.getElementById('coordinates');
+
+        viewer.camera.changed.addEventListener(function() {
+            const ellipsoid = viewer.scene.globe.ellipsoid;
+            const cartesian = viewer.camera.positionWC;
+            const cartographic = ellipsoid.cartesianToCartographic(cartesian);
+
+            const lat = Cesium.Math.toDegrees(cartographic.latitude).toFixed(3);
+            const lon = Cesium.Math.toDegrees(cartographic.longitude).toFixed(3);
+            const alt = (cartographic.height / 1000).toFixed(1);
+
+            coordsDisplay.innerHTML = `Latitude: ${lat}°<br>Longitude: ${lon}°<br>Altitude: ${alt}km`;
+
+            if (cartographic.height < GLOBE_SWITCH_HEIGHT) {
+                viewer.scene.morphTo2D(1.0);
+                currentMode = Cesium.SceneMode.SCENE2D;
+                viewer.camera.zoomIn()
+                console.log("to 2d");
+                //showProjectionChange("Auto Mode: 2D Map");
+            } else {
+                viewer.scene.morphTo3D(1.0);
+                currentMode = Cesium.SceneMode.SCENE3D;
+                //showProjectionChange("Auto Mode: 3D Globe");
+                console.log("to 3d");
+            }
+        });
+
+        // Define famous locations
+        const locations = {
+            eiffel: {
+                destination: Cesium.Cartesian3.fromDegrees(2.2945, 48.8584, 400),
+                orientation: {
+                    heading: Cesium.Math.toRadians(0),
+                    pitch: Cesium.Math.toRadians(-30),
+                    roll: 0.0
+                }
+            },
+            grandcanyon: {
+                destination: Cesium.Cartesian3.fromDegrees(-112.1121, 36.0544, 3000),
+                orientation: {
+                    heading: Cesium.Math.toRadians(45),
+                    pitch: Cesium.Math.toRadians(-25),
+                    roll: 0.0
+                }
+            },
+            pyramids: {
+                destination: Cesium.Cartesian3.fromDegrees(31.1342, 29.9792, 600),
+                orientation: {
+                    heading: Cesium.Math.toRadians(0),
+                    pitch: Cesium.Math.toRadians(-30),
+                    roll: 0.0
+                }
+            },
+            everest: {
+                destination: Cesium.Cartesian3.fromDegrees(86.9250, 27.9881, 8000),
+                orientation: {
+                    heading: Cesium.Math.toRadians(0),
+                    pitch: Cesium.Math.toRadians(-30),
+                    roll: 0.0
+                }
+            },
+            sydney: {
+                destination: Cesium.Cartesian3.fromDegrees(151.2153, -33.8568, 600),
+                orientation: {
+                    heading: Cesium.Math.toRadians(45),
+                    pitch: Cesium.Math.toRadians(-30),
+                    roll: 0.0
+                }
+            },
+            colosseum: {
+                destination: Cesium.Cartesian3.fromDegrees(12.4924, 41.8902, 400),
+                orientation: {
+                    heading: Cesium.Math.toRadians(0),
+                    pitch: Cesium.Math.toRadians(-40),
+                    roll: 0.0
+                }
+            },
+            amazon: {
+                destination: Cesium.Cartesian3.fromDegrees(-60.0, -3.0, 20000),
+                orientation: {
+                    heading: Cesium.Math.toRadians(0),
+                    pitch: Cesium.Math.toRadians(-30),
+                    roll: 0.0
+                }
+            }
+        };
+
+        // Set up location selector
+        document.getElementById('locations').addEventListener('change', function(e) {
+            const location = e.target.value;
+            if (location && locations[location]) {
+                viewer.camera.flyTo({
+                    destination: locations[location].destination,
+                    orientation: locations[location].orientation,
+                    duration: 3
+                });
+            }
+        });
+
+        // 3D Buildings toggle
+        document.getElementById('buildingsToggle').addEventListener('change', function(e) {
+            // In a real app with access token, this would enable real 3D buildings
+            // Instead, we'll simulate some behavior
+            viewer.scene.globe.depthTestAgainstTerrain = e.target.checked;
+        });
+
+        // Atmosphere toggle
+        document.getElementById('atmosphereToggle').addEventListener('change', function(e) {
+            viewer.scene.skyAtmosphere.show = e.target.checked;
+            viewer.scene.globe.enableLighting = e.target.checked;
+        });
+
+        // Time toggle for day/night cycle
+        let timeInterval;
+        document.getElementById('timeToggle').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                // Start time animation
+                let currentDate = Cesium.JulianDate.now();
+                timeInterval = setInterval(() => {
+                    currentDate = Cesium.JulianDate.addSeconds(currentDate, 600, new Cesium.JulianDate());
+                    viewer.clock.currentTime = currentDate;
+                }, 100);
+            } else {
+                // Stop time animation
+                clearInterval(timeInterval);
+                viewer.clock.currentTime = Cesium.JulianDate.now();
+            }
+        });
+
+        // Fly home button
+        document.getElementById('flyHomeBtn').addEventListener('click', function() {
+            viewer.camera.flyHome(2);
+        });
+
+        // Add Pin button
+        document.getElementById('addPinBtn').addEventListener('click', function() {
+            // Get the center of the screen
+            const windowPosition = new Cesium.Cartesian2(
+                viewer.canvas.clientWidth / 2,
+                viewer.canvas.clientHeight / 2
+            );
+
+            // Get the ray from the camera to the center of the screen
+            const ray = viewer.camera.getPickRay(windowPosition);
+
+            // Find where the ray intersects the Earth
+            const position = viewer.scene.globe.pick(ray, viewer.scene);
+
+            if (Cesium.defined(position)) {
+                // Convert position to cartographic (longitude, latitude, height)
+                const cartographic = Cesium.Cartographic.fromCartesian(position);
+                const longitude = Cesium.Math.toDegrees(cartographic.longitude);
+                const latitude = Cesium.Math.toDegrees(cartographic.latitude);
+
+                // Create and add a new pin entity
+                const pinEntity = viewer.entities.add({
+                    name: `Pin at ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+                    position: Cesium.Cartesian3.fromDegrees(longitude, latitude, 0),
+                    billboard: {
+                        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2U5MWUxZSIgd2lkdGg9IjQ4cHgiIGhlaWdodD0iNDhweCI+PHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDljMCA1LjI1IDcgMTMgNyAxM3M3LTcuNzUgNy0xM2MwLTMuODctMy4xMy03LTctN3ptMCA5LjVjLTEuMzggMC0yLjUtMS4xMi0yLjUtMi41czEuMTItMi41IDIuNS0yLjUgMi41IDEuMTIgMi41IDIuNS0xLjEyIDIuNS0yLjUgMi41eiIvPjwvc3ZnPg==',
+                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                        scale: 0.5
+                    },
+                    description: `
+                        <table class="cesium-infoBox-defaultTable">
+                            <tr><th>Latitude</th><td>${latitude.toFixed(6)}°</td></tr>
+                            <tr><th>Longitude</th><td>${longitude.toFixed(6)}°</td></tr>
+                            <tr><th>Added</th><td>${new Date().toLocaleString()}</td></tr>
+                        </table>
+                    `
+                });
+
+                // Select the entity to show its info
+                viewer.selectedEntity = pinEntity;
+            }
+        });
+    </script>
+</body>
+</html>
