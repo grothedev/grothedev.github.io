@@ -1,0 +1,461 @@
+{
+    "config": {
+      "update_interval": 5,
+      "default_status": "active"
+    },
+    "collections": [
+      {
+        "name": "sensors",
+        "items": [
+          {
+            "id": "temp-001",
+            "name": "Temperature Sensor 1",
+            "type": "temperature",
+            "unit": "celsius",
+            "value": 22.5,
+            "status": "online",
+            "update_rules": {
+              "value": {
+                "type": "random_float",
+                "min_change": -0.5,
+                "max_change": 0.5,
+                "min_value": 15.0,
+                "max_value": 30.0,
+                "precision": 2
+              }
+            }
+          },
+          {
+            "id": "hum-001",
+            "name": "Humidity Sensor 1",
+            "type": "humidity",
+            "unit": "percent",
+            "value": 45.2,
+            "status": "online",
+            "update_rules": {
+              "value": {
+                "type": "random_float",
+                "min_change": -1.0,
+                "max_change": 1.0,
+                "min_value": 30.0,
+                "max_value": 70.0,
+                "precision": 2
+              }
+            }
+          },
+          {
+            "id": "pres-001",
+            "name": "Pressure Sensor 1",
+            "type": "pressure",
+            "unit": "hPa",
+            "value": 1013.25,
+            "status": "online",
+            "update_rules": {
+              "value": {
+                "type": "random_float",
+                "min_change": -0.25,
+                "max_change": 0.25,
+                "min_value": 990.0,
+                "max_value": 1030.0,
+                "precision": 2
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "vessels",
+        "type": "geojson",
+        "items": [
+          {
+            "id": "vessel-001",
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [-122.4194, 37.7749]
+            },
+            "properties": {
+              "name": "Cargo Ship Alpha",
+              "vesselType": "cargo",
+              "mmsi": "123456789",
+              "speed": 15.5,
+              "heading": 90,
+              "status": "underway",
+              "update_rules": {
+                "geometry.coordinates": {
+                  "type": "geo_movement",
+                  "speed_knots": 15.5,
+                  "heading_variation": 10,
+                  "speed_variation": 2,
+                  "bounds": [-123.0, 37.0, -121.0, 38.5]
+                },
+                "properties.speed": {
+                  "type": "random_float",
+                  "min_change": -0.5,
+                  "max_change": 0.5,
+                  "min_value": 10.0,
+                  "max_value": 20.0,
+                  "precision": 1
+                },
+                "properties.heading": {
+                  "type": "random_int",
+                  "min_change": -5,
+                  "max_change": 5,
+                  "min_value": 0,
+                  "max_value": 359
+                }
+              }
+            }
+          },
+          {
+            "id": "vessel-002",
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [-122.3, 37.85]
+            },
+            "properties": {
+              "name": "Fishing Vessel Beta",
+              "vesselType": "fishing",
+              "mmsi": "987654321",
+              "speed": 8.2,
+              "heading": 180,
+              "status": "fishing",
+              "update_rules": {
+                "geometry.coordinates": {
+                  "type": "geo_movement",
+                  "speed_knots": 8.2,
+                  "heading_variation": 20,
+                  "speed_variation": 1.5,
+                  "bounds": [-123.0, 37.0, -121.0, 38.5]
+                },
+                "properties.speed": {
+                  "type": "random_float",
+                  "min_change": -0.8,
+                  "max_change": 0.8,
+                  "min_value": 5.0,
+                  "max_value": 12.0,
+                  "precision": 1
+                },
+                "properties.heading": {
+                  "type": "random_int",
+                  "min_change": -10,
+                  "max_change": 10,
+                  "min_value": 0,
+                  "max_value": 359
+                }
+              }
+            }
+          },
+          {
+            "id": "vessel-003",
+            "type": "Feature",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [-122.2, 37.65]
+            },
+            "properties": {
+              "name": "Passenger Ferry Delta",
+              "vesselType": "passenger",
+              "mmsi": "246813579",
+              "speed": 18.7,
+              "heading": 270,
+              "status": "underway",
+              "update_rules": {
+                "geometry.coordinates": {
+                  "type": "geo_movement",
+                  "speed_knots": 18.7,
+                  "heading_variation": 5,
+                  "speed_variation": 1.0,
+                  "bounds": [-123.0, 37.0, -121.0, 38.5]
+                },
+                "properties.speed": {
+                  "type": "random_float",
+                  "min_change": -0.3,
+                  "max_change": 0.3,
+                  "min_value": 16.0,
+                  "max_value": 22.0,
+                  "precision": 1
+                },
+                "properties.heading": {
+                  "type": "random_int",
+                  "min_change": -3,
+                  "max_change": 3,
+                  "min_value": 0,
+                  "max_value": 359
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "traffic",
+        "type": "geojson",
+        "items": [
+          {
+            "id": "road-segment-001",
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [-122.4194, 37.7749],
+                [-122.4099, 37.7850],
+                [-122.4000, 37.7900]
+              ]
+            },
+            "properties": {
+              "name": "Market Street",
+              "roadType": "arterial",
+              "congestion": "medium",
+              "avgSpeed": 25.5,
+              "speedLimit": 35,
+              "incidents": [],
+              "update_rules": {
+                "properties.congestion": {
+                  "type": "random_choice",
+                  "choices": ["low", "medium", "high"]
+                },
+                "properties.avgSpeed": {
+                  "type": "random_float",
+                  "min_change": -2.0,
+                  "max_change": 2.0,
+                  "min_value": 15.0,
+                  "max_value": 35.0,
+                  "precision": 1
+                },
+                "properties.incidents": {
+                  "type": "random_incidents",
+                  "probability": 0.1,
+                  "max_incidents": 2,
+                  "types": ["accident", "construction", "event", "closure"]
+                }
+              }
+            }
+          },
+          {
+            "id": "road-segment-002",
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [-122.4300, 37.7700],
+                [-122.4350, 37.7800],
+                [-122.4400, 37.7900]
+              ]
+            },
+            "properties": {
+              "name": "Van Ness Avenue",
+              "roadType": "arterial",
+              "congestion": "high",
+              "avgSpeed": 18.2,
+              "speedLimit": 30,
+              "incidents": [
+                {
+                  "type": "construction",
+                  "description": "Road work",
+                  "severity": "moderate"
+                }
+              ],
+              "update_rules": {
+                "properties.congestion": {
+                  "type": "random_choice",
+                  "choices": ["low", "medium", "high"]
+                },
+                "properties.avgSpeed": {
+                  "type": "random_float",
+                  "min_change": -1.5,
+                  "max_change": 1.5,
+                  "min_value": 10.0,
+                  "max_value": 30.0,
+                  "precision": 1
+                },
+                "properties.incidents": {
+                  "type": "random_incidents",
+                  "probability": 0.2,
+                  "max_incidents": 2,
+                  "types": ["accident", "construction", "event", "closure"]
+                }
+              }
+            }
+          },
+          {
+            "id": "road-segment-003",
+            "type": "Feature",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [-122.4050, 37.7650],
+                [-122.4100, 37.7600],
+                [-122.4150, 37.7550]
+              ]
+            },
+            "properties": {
+              "name": "Mission Street",
+              "roadType": "collector",
+              "congestion": "low",
+              "avgSpeed": 28.7,
+              "speedLimit": 30,
+              "incidents": [],
+              "update_rules": {
+                "properties.congestion": {
+                  "type": "random_choice",
+                  "choices": ["low", "medium", "high"]
+                },
+                "properties.avgSpeed": {
+                  "type": "random_float",
+                  "min_change": -1.8,
+                  "max_change": 1.8,
+                  "min_value": 18.0,
+                  "max_value": 30.0,
+                  "precision": 1
+                },
+                "properties.incidents": {
+                  "type": "random_incidents",
+                  "probability": 0.05,
+                  "max_incidents": 1,
+                  "types": ["accident", "construction", "event", "closure"]
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "stocks",
+        "items": [
+          {
+            "id": "aapl",
+            "name": "Apple Inc.",
+            "symbol": "AAPL",
+            "price": 178.25,
+            "change": 1.35,
+            "volume": 32500000,
+            "market_cap": 2795000000000,
+            "update_rules": {
+              "price": {
+                "type": "random_float",
+                "min_change": -2.0,
+                "max_change": 2.0,
+                "min_value": 150.0,
+                "max_value": 200.0,
+                "precision": 2
+              },
+              "volume": {
+                "type": "random_int",
+                "min_change": -1000000,
+                "max_change": 1000000,
+                "min_value": 20000000,
+                "max_value": 50000000
+              }
+            }
+          },
+          {
+            "id": "msft",
+            "name": "Microsoft Corporation",
+            "symbol": "MSFT",
+            "price": 375.68,
+            "change": -0.89,
+            "volume": 25600000,
+            "market_cap": 2789000000000,
+            "update_rules": {
+              "price": {
+                "type": "random_float",
+                "min_change": -3.0,
+                "max_change": 3.0,
+                "min_value": 350.0,
+                "max_value": 400.0,
+                "precision": 2
+              },
+              "volume": {
+                "type": "random_int",
+                "min_change": -1500000,
+                "max_change": 1500000,
+                "min_value": 20000000,
+                "max_value": 40000000
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "weather",
+        "items": [
+          {
+            "id": "nyc",
+            "name": "New York City",
+            "temperature": 18.5,
+            "conditions": "Partly Cloudy",
+            "humidity": 65,
+            "wind_speed": 12.3,
+            "update_rules": {
+              "temperature": {
+                "type": "random_float",
+                "min_change": -0.7,
+                "max_change": 0.7,
+                "min_value": 10.0,
+                "max_value": 30.0,
+                "precision": 1
+              },
+              "humidity": {
+                "type": "random_int",
+                "min_change": -2,
+                "max_change": 2,
+                "min_value": 40,
+                "max_value": 95
+              },
+              "wind_speed": {
+                "type": "random_float",
+                "min_change": -1.5,
+                "max_change": 1.5,
+                "min_value": 0.0,
+                "max_value": 25.0,
+                "precision": 1
+              },
+              "conditions": {
+                "type": "random_choice",
+                "choices": ["Sunny", "Partly Cloudy", "Cloudy", "Rainy", "Stormy", "Foggy"]
+              }
+            }
+          },
+          {
+            "id": "sfo",
+            "name": "San Francisco",
+            "temperature": 15.8,
+            "conditions": "Foggy",
+            "humidity": 72,
+            "wind_speed": 8.7,
+            "update_rules": {
+              "temperature": {
+                "type": "random_float",
+                "min_change": -0.5,
+                "max_change": 0.5,
+                "min_value": 10.0,
+                "max_value": 25.0,
+                "precision": 1
+              },
+              "humidity": {
+                "type": "random_int",
+                "min_change": -3,
+                "max_change": 3,
+                "min_value": 50,
+                "max_value": 95
+              },
+              "wind_speed": {
+                "type": "random_float",
+                "min_change": -1.0,
+                "max_change": 1.0,
+                "min_value": 0.0,
+                "max_value": 20.0,
+                "precision": 1
+              },
+              "conditions": {
+                "type": "random_choice",
+                "choices": ["Sunny", "Partly Cloudy", "Cloudy", "Foggy", "Rainy"]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }

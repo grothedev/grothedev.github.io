@@ -1,0 +1,125 @@
+# Dummy Sensor API Service
+
+This repository contains a simple Flask-based API service that provides dummy sensor data with real-time updates. The service offers both REST API endpoints for traditional HTTP requests and real-time updates via WebSockets or MQTT.
+
+## Features
+
+- **REST API endpoints** for retrieving sensor data
+- **Real-time updates** via WebSockets or MQTT
+- **Random data fluctuations** simulating real sensor behavior
+- **Simple HTML client** for visualizing the sensor data
+
+## Implementation Options
+
+Two implementation options are provided:
+
+1. **WebSocket Implementation**: Uses Flask-SocketIO for real-time communication
+2. **MQTT Implementation**: Uses Paho-MQTT for publishing updates to MQTT topics
+
+## Installation
+
+1. Clone this repository:
+   ```
+   git clone https://github.com/yourusername/dummy-sensor-api.git
+   cd dummy-sensor-api
+   ```
+
+2. Create a virtual environment:
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies (choose one based on your preferred implementation):
+   
+   For WebSocket implementation:
+   ```
+   pip install -r requirements.txt
+   ```
+   
+   For MQTT implementation:
+   ```
+   pip install -r mqtt-requirements.txt
+   ```
+
+## Running the Service
+
+### WebSocket Implementation
+
+```
+python app.py
+```
+
+### MQTT Implementation
+
+1. Make sure you have an MQTT broker running (e.g., Mosquitto):
+   ```
+   # Install Mosquitto (Ubuntu/Debian)
+   sudo apt-get install mosquitto mosquitto-clients
+   
+   # Install Mosquitto (macOS)
+   brew install mosquitto
+   
+   # Start Mosquitto
+   mosquitto
+   ```
+
+2. Run the MQTT version of the API:
+   ```
+   python mqtt_app.py
+   ```
+
+## API Endpoints
+
+- `GET /api/sensors`: Get all sensors data
+- `GET /api/sensors/<sensor_id>`: Get data for a specific sensor
+- `GET /api/sensors/type/<sensor_type>`: Get all sensors of a specific type
+
+## WebSocket Events
+
+- `sensor_update`: Event emitted when sensor data is updated
+- `connect`: Client connection event
+- `disconnect`: Client disconnection event
+- `start_background`: Event to trigger the background update task
+
+## MQTT Topics
+
+- `sensors/data`: All sensors data in a single message
+- `sensors/<type>/<id>`: Individual sensor data
+
+## Testing the API
+
+### REST API
+
+```
+curl http://localhost:5000/api/sensors
+curl http://localhost:5000/api/sensors/temp-001
+curl http://localhost:5000/api/sensors/type/temperature
+```
+
+### WebSocket Client
+
+Open the provided `client.html` file in a web browser to see the real-time dashboard.
+
+### MQTT Client
+
+```
+# Subscribe to all sensor updates
+mosquitto_sub -t "sensors/data" -v
+
+# Subscribe to a specific sensor type
+mosquitto_sub -t "sensors/temperature/+" -v
+```
+
+## Customization
+
+You can easily extend this API by:
+
+1. Adding more sensor types and data points in the `sensors` dictionary
+2. Creating additional API endpoints
+3. Implementing more sophisticated data generation logic
+4. Adding authentication and authorization
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

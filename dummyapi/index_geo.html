@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Data Dashboard with GeoJSON</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .dashboard-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .collection-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+        }
+        .collection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .collection-title {
+            text-transform: capitalize;
+            margin: 0;
+        }
+        .items-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .item-card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            flex: 1;
+            min-width: 280px;
+            transition: all 0.2s ease;
+            border-left: 4px solid #3498db;
+        }
+        .item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .item-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .item-name {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        .item-id {
+            margin: 5px 0 0 0;
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
+        .item-property {
+            margin: 10px 0;
+        }
+        .property-name {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .property-value {
+            font-family: monospace;
+        }
+        .timestamp {
+            color: #95a5a6;
+            font-size: 0.8em;
+            margin-top: 15px;
+            text-align: right;
+        }
+        .connection-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        .connected {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .disconnected {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .hide-property {
+            display: none;
+        }
+        
+        /* Map container */
+        .map-container {
+            height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        
+        /* Collection-specific styling */
+        .sensors .item-card {
+            border-left-color: #3498db;
+        }
+        .vessels .item-card {
+            border-left-color: #e67e22;
+        }
+        .traffic .item-card {
+            border-left-color: #9b59b6;
+        }
+        .stocks .item-card {
+            border-left-color: #2ecc71;
+        }
+        .weather .item-card {
+            border-left-color: #f39c12;
+        }
+        .positive-change {
+            color: #2ecc71;
+        }
+        .negative-change {
+            color: #e74c3c;
+        }
+        
+        /* Traffic conditions styling */
+        .traffic-low {
+            color: #2ecc71;
+        }
+        .traffic-medium {
+            color: #f39c12;
+        }
+        .traffic-high {
+            color: #e74c3c;
+        }
+        
+        /* Incident styling */
+        .incidents-list {
+            margin-top: 10px;
+            padding-left: 0;
+            list-style: none;
+        }
+        .incident-item {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-left: 3px solid #7f8c8d;
+        }
+        .incident-accident {
+            border-left-color: #e74c3c;
+        }
+        .incident-construction {
+            border-left-color: #f39c12;
+        }
+        .incident-event {
+            border-left-color: #3498db;
+        }
+        .incident-closure {
+            border-left-color: #9b59b6;
+        }
+        .incident-title {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        .incident-details {
+            font-size: 0.85em;
+            color: #7f8c8d;
+        }
+        
+        /* Loading animation */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+        .loading:after {
+            content: " ";
+            display: block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 6px solid #3498db;
+            border-color: #3498db transparent #3498db transparent;
+            animation: loading 1.2s linear infinite;
+        }
+        @keyframes loading {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Tab navigation */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: white;
+            border-bottom-color: white;
+            margin-bottom: -1px;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Dynamic Data Dashboard with GeoJSON</h1>
+        <p>This dashboard displays real-time data from the API using WebSocket updates, including geospatial data visualized on maps.</p>
+        
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <div class="tab active" data-tab="data-view">Data View</div>
+            <div class="tab" data-tab="map-view">Map View</div>
+        </div>
+        
+        <!-- Data View Tab Content -->
+        <div class="tab-content active" data-tab-content="data-view">
+            <div id="collections-container">
+                <div class="loading"></div>
+            </div>
+        </div>
+        
+        <!-- Map View Tab Content -->
+        <div class="tab-content" data-tab-content="map-view">
+            <div class="collection-container">
+                <div class="collection-header">
+                    <h2 class="collection-title">GeoJSON Visualization</h2>
+                </div>
+                <div id="map-controls" style="margin-bottom: 15px;">
+                    <label><input type="checkbox" id="show-vessels" checked> Show Vessels</label>
+                    <label style="margin-left: 15px;"><input type="checkbox" id="show-traffic" checked> Show Traffic</label>
+                </div>
+                <div id="map" class="map-container"></div>
+            </div>
+        </div>
+        
+        <div id="connection-status" class="connection-status disconnected">Disconnected</div>
+    </div>
+
+    <script>
+        // Element references
+        const collectionsContainer = document.getElementById('collections-container');
+        const connectionStatus = document.getElementById('connection-status');
+        const mapElement = document.getElementById('map');
+        const showVesselsCheckbox = document.getElementById('show-vessels');
+        const showTrafficCheckbox = document.getElementById('show-traffic');
+        
+        // Map and layers
+        let map;
+        let vesselsLayer;
+        let trafficLayer;
+        
+        // Tab navigation
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                
+                // Update active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update active content
+                tabContents.forEach(content => {
+                    if (content.dataset.tabContent === tabName) {
+                        content.classList.add('active');
+                        
+                        // Initialize map if switching to map view
+                        if (tabName === 'map-view' && !map) {
+                            initMap();
+                        }
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+            });
+        });
+        
+        // Properties to hide in the UI
+        const hiddenProperties = ['update_rules'];
+        
+        // Initialize Leaflet map
+        function initMap() {
+            if (map) return; // Don't initialize twice
+            
+            map = L.map('map').setView([37.7749, -122.4194], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Create layers for vessels and traffic
+            vesselsLayer = L.layerGroup().addTo(map);
+            trafficLayer = L.layerGroup().addTo(map);
+            
+            // Add layer control event listeners
+            showVesselsCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    map.addLayer(vesselsLayer);
+                } else {
+                    map.removeLayer(vesselsLayer);
+                }
+            });
+            
+            showTrafficCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    map.addLayer(trafficLayer);
+                } else {
+                    map.removeLayer(trafficLayer);
+                }
+            });
+        }
+        
+        // Update map with GeoJSON data
+        function updateMap(data) {
+            if (!map) return;
+            
+            // Clear existing markers and paths
+            vesselsLayer.clearLayers();
+            trafficLayer.clearLayers();
+            
+            // Add vessels
+            if (data.vessels && data.vessels.items) {
+                data.vessels.items.forEach(vessel => {
+                    if (vessel.geometry.type === 'Point') {
+                        const coords = vessel.geometry.coordinates;
+                        const properties = vessel.properties;
+                        
+                        // Create marker with popup
+                        const marker = L.marker([coords[1], coords[0]], {
+                            title: properties.name
+                        });
+                        
+                        // Add popup with vessel info
+                        marker.bindPopup(`
+                            <h3>${properties.name}</h3>
+                            <p><strong>Type:</strong> ${properties.vesselType}</p>
+                            <p><strong>MMSI:</strong> ${properties.mmsi}</p>
+                            <p><strong>Speed:</strong> ${properties.speed} knots</p>
+                            <p><strong>Heading:</strong> ${properties.heading}°</p>
+                            <p><strong>Status:</strong> ${properties.status}</p>
+                        `);
+                        
+                        vesselsLayer.addLayer(marker);
+                    }
+                });
+            }
+            
+            // Add traffic
+            if (data.traffic && data.traffic.items) {
+                data.traffic.items.forEach(road => {
+                    if (road.geometry.type === 'LineString') {
+                        const coords = road.geometry.coordinates;
+                        const properties = road.properties;
+                        
+                        // Convert coordinates from [lon, lat] to [lat, lon]
+                        const latLngs = coords.map(coord => [coord[1], coord[0]]);
+                        
+                        // Set color based on congestion
+                        let color = '#3498db';
+                        if (properties.congestion === 'low') {
+                            color = '#2ecc71';
+                        } else if (properties.congestion === 'medium') {
+                            color = '#f39c12';
+                        } else if (properties.congestion === 'high') {
+                            color = '#e74c3c';
+                        }
+                        
+                        // Create polyline
+                        const polyline = L.polyline(latLngs, {
+                            color: color,
+                            weight: 5,
+                            opacity: 0.8
+                        });
+                        
+                        // Build incidents HTML if there are any
+                        let incidentsHtml = '';
+                        if (properties.incidents && properties.incidents.length > 0) {
+                            incidentsHtml = '<h4>Incidents:</h4><ul>';
+                            properties.incidents.forEach(incident => {
+                                incidentsHtml += `
+                                    <li>${incident.type}: ${incident.description} (${incident.severity})</li>
+                                `;
+                            });
+                            incidentsHtml += '</ul>';
+                        }
+                        
+                        // Add popup with road info
+                        polyline.bindPopup(`
+                            <h3>${properties.name}</h3>
+                            <p><strong>Type:</strong> ${properties.roadType}</p>
+                            <p><strong>Congestion:</strong> ${properties.congestion}</p>
+                            <p><strong>Average Speed:</strong> ${properties.avgSpeed} mph</p>
+                            <p><strong>Speed Limit:</strong> ${properties.speedLimit} mph</p>
+                            ${incidentsHtml}
+                        `);
+                        
+                        trafficLayer.addLayer(polyline);
+                    }
+                });
+            }
+        }
+        
+        // Connect to the Socket.IO server
+        const socket = io('http://localhost:5000');
+        
+        // Handle connection events
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket server');
+            connectionStatus.textContent = 'Connected';
+            connectionStatus.className = 'connection-status connected';
+            
+            // Request the server to start the background task
+            socket.emit('start_background');
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('Disconnected from WebSocket server');
+            connectionStatus.textContent = 'Disconnected';
+            connectionStatus.className = 'connection-status disconnected';
+        });
+        
+        // Handle data updates
+        socket.on('data_update', (data) => {
+            console.log('Received data update:', data);
+            updateDashboard(data);
+            updateMap(data);
+        });
+        
+        // Create or update the dashboard with new data
+        function updateDashboard(data) {
+            // Remove loading indicator
+            collectionsContainer.innerHTML = '';
+            
+            // Process each collection
+            for (const [collectionName, collection] of Object.entries(data)) {
+                // Create or get the collection container
+                let collectionContainer = document.getElementById(`collection-${collectionName}`);
+                
+                if (!collectionContainer) {
+                    // Create new collection container
+                    collectionContainer = document.createElement('div');
+                    collectionContainer.id = `collection-${collectionName}`;
+                    collectionContainer.className = `collection-container ${collectionName}`;
+                    
+                    // Create collection header
+                    const collectionHeader = document.createElement('div');
+                    collectionHeader.className = 'collection-header';
+                    
+                    const collectionTitle = document.createElement('h2');
+                    collectionTitle.className = 'collection-title';
+                    collectionTitle.textContent = formatTitle(collectionName);
+                    
+                    collectionHeader.appendChild(collectionTitle);
+                    collectionContainer.appendChild(collectionHeader);
+                    
+                    // Create items container
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = 'items-container';
+                    itemsContainer.id = `${collectionName}-items`;
+                    collectionContainer.appendChild(itemsContainer);
+                    
+                    collectionsContainer.appendChild(collectionContainer);
+                }
+                
+                // Get the items container
+                const itemsContainer = document.getElementById(`${collectionName}-items`);
+                itemsContainer.innerHTML = '';
+                
+                // Check if this is a GeoJSON collection
+                const isGeoJSON = collection.type === 'geojson';
+                
+                // Add each item to the collection
+                collection.items.forEach(item => {
+                    const itemCard = isGeoJSON 
+                        ? createGeoJSONItemCard(item, collectionName) 
+                        : createItemCard(item, collectionName);
+                    
+                    itemsContainer.appendChild(itemCard);
+                });
+            }
+        }
+        
+        // Create a card for a standard (non-GeoJSON) item
+        function createItemCard(item, collectionName) {
+            const itemCard = document.createElement('div');
+            itemCard.className = 'item-card';
+            itemCard.id = `item-${item.id}`;
+            
+            // Item header with name and ID
+            const itemHeader = document.createElement('div');
+            itemHeader.className = 'item-header';
+            
+            const itemName = document.createElement('h3');
+            itemName.className = 'item-name';
+            itemName.textContent = item.name || item.id;
+            
+            const itemId = document.createElement('p');
+            itemId.className = 'item-id';
+            itemId.textContent = `ID: ${item.id}`;
+            
+            itemHeader.appendChild(itemName);
+            itemHeader.appendChild(itemId);
+            itemCard.appendChild(itemHeader);
+            
+            // Add each property
+            for (const [key, value] of Object.entries(item)) {
+                // Skip hidden properties
+                if (hiddenProperties.includes(key) || key === 'id' || key === 'name') {
+                    continue;
+                }
+                
+                const propertyDiv = document.createElement('div');
+                propertyDiv.className = 'item-property';
+                
+                const propertyName = document.createElement('span');
+                propertyName.className = 'property-name';
+                propertyName.textContent = formatTitle(key) + ':';
+                
+                const propertyValue = document.createElement('span');
+                propertyValue.className = 'property-value';
+                
+                // Format the value based on the property and collection type
+                if (key === 'last_updated') {
+                    try {
+                        const date = new Date(value);
+                        propertyValue.textContent = date.toLocaleTimeString();
+                    } catch (e) {
+                        propertyValue.textContent = value;
+                    }
+                } else if (key === 'change' && collectionName === 'stocks') {
+                    // Format stock changes with + or - and color
+                    const changeValue = parseFloat(value);
+                    propertyValue.textContent = (changeValue >= 0 ? '+' : '') + changeValue.toFixed(2);
+                    propertyValue.className += changeValue >= 0 ? ' positive-change' : ' negative-change';
+                } else if (typeof value === 'number') {
+                    // Format numbers with appropriate precision
+                    propertyValue.textContent = typeof value === 'number' && Number.isInteger(value) 
+                        ? value.toLocaleString() 
+                        : value.toFixed(2);
+                } else {
+                    propertyValue.textContent = value;
+                }
+                
+                propertyDiv.appendChild(propertyName);
+                propertyDiv.appendChild(propertyValue);
+                itemCard.appendChild(propertyDiv);
+            }
+            
+            // Add timestamp if available
+            if (item.last_updated) {
+                const timestamp = document.createElement('div');
+                timestamp.className = 'timestamp';
+                try {
+                    const date = new Date(item.last_updated);
+                    timestamp.textContent = `Updated: ${date.toLocaleTimeString()}`;
+                } catch (e) {
+                    timestamp.textContent = `Updated: ${item.last_updated}`;
+                }
+                itemCard.appendChild(timestamp);
+            }
+            
+            return itemCard;
+        }
+        
+        // Create a card for a GeoJSON item
+        function createGeoJSONItemCard(item, collectionName) {
+            const itemCard = document.createElement('div');
+            itemCard.className = 'item-card';
+            itemCard.id = `item-${item.id}`;
+            
+            // Item header with name and ID
+            const itemHeader = document.createElement('div');
+            itemHeader.className = 'item-header';
+            
+            const itemName = document.createElement('h3');
+            itemName.className = 'item-name';
+            itemName.textContent = item.properties.name || item.id;
+            
+            const itemId = document.createElement('p');
+            itemId.className = 'item-id';
+            itemId.textContent = `ID: ${item.id} | Type: ${item.geometry.type}`;
+            
+            itemHeader.appendChild(itemName);
+            itemHeader.appendChild(itemId);
+            itemCard.appendChild(itemHeader);
+            
+            // Add geometry information
+            const geometryDiv = document.createElement('div');
+            geometryDiv.className = 'item-property';
+            
+            const geometryName = document.createElement('span');
+            geometryName.className = 'property-name';
+            geometryName.textContent = 'Coordinates:';
+            
+            const geometryValue = document.createElement('span');
+            geometryValue.className = 'property-value';
+            
+            // Format coordinates based on geometry type
+            if (item.geometry.type === 'Point') {
+                const [lon, lat] = item.geometry.coordinates;
+                geometryValue.textContent = `[${lat.toFixed(6)}, ${lon.toFixed(6)}]`;
+            } else if (item.geometry.type === 'LineString') {
+                geometryValue.textContent = `${item.geometry.coordinates.length} points`;
+            } else {
+                geometryValue.textContent = JSON.stringify(item.geometry.coordinates);
+            }
+            
+            geometryDiv.appendChild(geometryName);
+            geometryDiv.appendChild(geometryValue);
+            itemCard.appendChild(geometryDiv);
+            
+            // Add properties
+            for (const [key, value] of Object.entries(item.properties)) {
+                // Skip hidden properties
+                if (key === 'update_rules' || key === 'name') {
+                    continue;
+                }
+                
+                // Special handling for incidents
+                if (key === 'incidents' && Array.isArray(value) && value.length > 0) {
+                    const incidentsDiv = document.createElement('div');
+                    incidentsDiv.className = 'item-property';
+                    
+                    const incidentsTitle = document.createElement('div');
+                    incidentsTitle.className = 'property-name';
+                    incidentsTitle.textContent = 'Incidents:';
+                    incidentsDiv.appendChild(incidentsTitle);
+                    
+                    const incidentsList = document.createElement('ul');
+                    incidentsList.className = 'incidents-list';
+                    
+                    value.forEach(incident => {
+                        const incidentItem = document.createElement('li');
+                        incidentItem.className = `incident-item incident-${incident.type}`;
+                        
+                        const incidentTitle = document.createElement('div');
+                        incidentTitle.className = 'incident-title';
+                        incidentTitle.textContent = `${incident.type}: ${incident.description}`;
+                        
+                        const incidentDetails = document.createElement('div');
+                        incidentDetails.className = 'incident-details';
+                        incidentDetails.textContent = `Severity: ${incident.severity}`;
+                        
+                        incidentItem.appendChild(incidentTitle);
+                        incidentItem.appendChild(incidentDetails);
+                        incidentsList.appendChild(incidentItem);
+                    });
+                    
+                    incidentsDiv.appendChild(incidentsList);
+                    itemCard.appendChild(incidentsDiv);
+                    continue;
+                }
+                
+                // Regular properties
+                const propertyDiv = document.createElement('div');
+                propertyDiv.className = 'item-property';
+                
+                const propertyName = document.createElement('span');
+                propertyName.className = 'property-name';
+                propertyName.textContent = formatTitle(key) + ':';
+                
+                const propertyValue = document.createElement('span');
+                propertyValue.className = 'property-value';
+                
+                // Format the value based on the property and collection type
+                if (key === 'last_updated') {
+                    try {
+                        const date = new Date(value);
+                        propertyValue.textContent = date.toLocaleTimeString();
+                    } catch (e) {
+                        propertyValue.textContent = value;
+                    }
+                } else if (key === 'congestion' && collectionName === 'traffic') {
+                    propertyValue.textContent = value;
+                    propertyValue.className += ` traffic-${value}`;
+                } else if (typeof value === 'number') {
+                    // Format numbers with appropriate precision
+                    propertyValue.textContent = typeof value === 'number' && Number.isInteger(value) 
+                        ? value.toLocaleString() 
+                        : value.toFixed(1);
+                } else {
+                    propertyValue.textContent = value;
+                }
+                
+                propertyDiv.appendChild(propertyName);
+                propertyDiv.appendChild(propertyValue);
+                itemCard.appendChild(propertyDiv);
+            }
+            
+            // Add timestamp if available
+            if (item.properties.last_updated) {
+                const timestamp = document.createElement('div');
+                timestamp.className = 'timestamp';
+                try {
+                    const date = new Date(item.properties.last_updated);
+                    timestamp.textContent = `Updated: ${date.toLocaleTimeString()}`;
+                } catch (e) {
+                    timestamp.textContent = `Updated: ${item.properties.last_updated}`;
+                }
+                itemCard.appendChild(timestamp);
+            }
+            
+            return itemCard;
+        }
+        
+        // Format a camelCase or snake_case string as a Title Case string
+        function formatTitle(str) {
+            return str
+                .replace(/_/g, ' ')
+                .replace(/([A-Z])/g, ' $1')
+                .replace(/^./, str => str.toUpperCase())
+                .trim();
+        }
+        
+        // Fetch initial data via REST API
+        fetch('http://localhost:5000/api/collections')
+            .then(response => response.json())
+            .then(data => {
+                const collections = Object.keys(data.collections);
+                
+                // Fetch each collection
+                const fetchPromises = collections.map(collection => 
+                    fetch(`http://localhost:5000/api/collections/${collection}`)
+                        .then(response => response.json())
+                );
+                
+                return Promise.all(fetchPromises)
+                    .then(results => {
+                        const initialData = {};
+                        collections.forEach((collection, index) => {
+                            initialData[collection] = results[index];
+                        });
+                        return initialData;
+                    });
+            })
+            .then(data => {
+                updateDashboard(data);
+            })
+            .catch(error => {
+                console.error('Error fetching initial data:', error);
+                collectionsContainer.innerHTML = `
+                    <div class="collection-container">
+                        <h2>Error Loading Data</h2>
+                        <p>Could not connect to the API server. Please ensure the server is running.</p>
+                    </div>
+                `;
+            });
+    </script>
+</body>
+</html>

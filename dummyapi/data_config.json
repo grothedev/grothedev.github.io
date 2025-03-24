@@ -1,0 +1,203 @@
+{
+  "config": {
+    "update_interval": 5,
+    "default_status": "active"
+  },
+  "collections": [
+    {
+      "name": "sensors",
+      "items": [
+        {
+          "id": "temp-001",
+          "name": "Temperature Sensor 1",
+          "type": "temperature",
+          "unit": "celsius",
+          "value": 22.5,
+          "status": "online",
+          "update_rules": {
+            "value": {
+              "type": "random_float",
+              "min_change": -0.5,
+              "max_change": 0.5,
+              "min_value": 15.0,
+              "max_value": 30.0,
+              "precision": 2
+            }
+          }
+        },
+        {
+          "id": "hum-001",
+          "name": "Humidity Sensor 1",
+          "type": "humidity",
+          "unit": "percent",
+          "value": 45.2,
+          "status": "online",
+          "update_rules": {
+            "value": {
+              "type": "random_float",
+              "min_change": -1.0,
+              "max_change": 1.0,
+              "min_value": 30.0,
+              "max_value": 70.0,
+              "precision": 2
+            }
+          }
+        },
+        {
+          "id": "pres-001",
+          "name": "Pressure Sensor 1",
+          "type": "pressure",
+          "unit": "hPa",
+          "value": 1013.25,
+          "status": "online",
+          "update_rules": {
+            "value": {
+              "type": "random_float",
+              "min_change": -0.25,
+              "max_change": 0.25,
+              "min_value": 990.0,
+              "max_value": 1030.0,
+              "precision": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "stocks",
+      "items": [
+        {
+          "id": "aapl",
+          "name": "Apple Inc.",
+          "symbol": "AAPL",
+          "price": 178.25,
+          "change": 1.35,
+          "volume": 32500000,
+          "market_cap": 2795000000000,
+          "update_rules": {
+            "price": {
+              "type": "random_float",
+              "min_change": -2.0,
+              "max_change": 2.0,
+              "min_value": 150.0,
+              "max_value": 200.0,
+              "precision": 2
+            },
+            "volume": {
+              "type": "random_int",
+              "min_change": -1000000,
+              "max_change": 1000000,
+              "min_value": 20000000,
+              "max_value": 50000000
+            }
+          }
+        },
+        {
+          "id": "msft",
+          "name": "Microsoft Corporation",
+          "symbol": "MSFT",
+          "price": 375.68,
+          "change": -0.89,
+          "volume": 25600000,
+          "market_cap": 2789000000000,
+          "update_rules": {
+            "price": {
+              "type": "random_float",
+              "min_change": -3.0,
+              "max_change": 3.0,
+              "min_value": 350.0,
+              "max_value": 400.0,
+              "precision": 2
+            },
+            "volume": {
+              "type": "random_int",
+              "min_change": -1500000,
+              "max_change": 1500000,
+              "min_value": 20000000,
+              "max_value": 40000000
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "weather",
+      "items": [
+        {
+          "id": "nyc",
+          "name": "New York City",
+          "temperature": 18.5,
+          "conditions": "Partly Cloudy",
+          "humidity": 65,
+          "wind_speed": 12.3,
+          "update_rules": {
+            "temperature": {
+              "type": "random_float",
+              "min_change": -0.7,
+              "max_change": 0.7,
+              "min_value": 10.0,
+              "max_value": 30.0,
+              "precision": 1
+            },
+            "humidity": {
+              "type": "random_int",
+              "min_change": -2,
+              "max_change": 2,
+              "min_value": 40,
+              "max_value": 95
+            },
+            "wind_speed": {
+              "type": "random_float",
+              "min_change": -1.5,
+              "max_change": 1.5,
+              "min_value": 0.0,
+              "max_value": 25.0,
+              "precision": 1
+            },
+            "conditions": {
+              "type": "random_choice",
+              "choices": ["Sunny", "Partly Cloudy", "Cloudy", "Rainy", "Stormy", "Foggy"]
+            }
+          }
+        },
+        {
+          "id": "sfo",
+          "name": "San Francisco",
+          "temperature": 15.8,
+          "conditions": "Foggy",
+          "humidity": 72,
+          "wind_speed": 8.7,
+          "update_rules": {
+            "temperature": {
+              "type": "random_float",
+              "min_change": -0.5,
+              "max_change": 0.5,
+              "min_value": 10.0,
+              "max_value": 25.0,
+              "precision": 1
+            },
+            "humidity": {
+              "type": "random_int",
+              "min_change": -3,
+              "max_change": 3,
+              "min_value": 50,
+              "max_value": 95
+            },
+            "wind_speed": {
+              "type": "random_float",
+              "min_change": -1.0,
+              "max_change": 1.0,
+              "min_value": 0.0,
+              "max_value": 20.0,
+              "precision": 1
+            },
+            "conditions": {
+              "type": "random_choice",
+              "choices": ["Sunny", "Partly Cloudy", "Cloudy", "Foggy", "Rainy"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
