@@ -1,0 +1,1 @@
+https://www.jsonresume.org/schema

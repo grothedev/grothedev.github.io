@@ -1,0 +1,303 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1.5;
+    color: #2c2c2c;
+    background: #ffffff;
+    padding: 40px 20px;
+    max-width: 850px;
+    margin: 0 auto;
+}
+
+.controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+}
+
+.load-btn {
+    background: #333;
+    color: white;
+    border: 1px solid #333;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.load-btn:hover {
+    background: #555;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.3);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    max-width: 600px;
+    width: 100%;
+    border: 1px solid #ddd;
+}
+
+.modal h3 {
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+.json-input {
+    width: 100%;
+    height: 300px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    resize: vertical;
+}
+
+.modal-buttons {
+    margin-top: 20px;
+    text-align: right;
+}
+
+.modal-buttons button {
+    margin-left: 10px;
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.modal-buttons .primary {
+    background: #333;
+    color: white;
+    border-color: #333;
+}
+
+.resume {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 40px;
+    margin-top: 20px;
+}
+
+.header {
+    border-bottom: 2px solid #333;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+.name {
+    font-size: 28px;
+    font-weight: normal;
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+
+.title {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.contact {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.contact-line {
+    margin-bottom: 3px;
+}
+
+.contact a {
+    color: #333;
+    text-decoration: none;
+}
+
+.contact a:hover {
+    text-decoration: underline;
+}
+
+.section {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+
+.summary {
+    font-size: 15px;
+    line-height: 1.6;
+    text-align: justify;
+}
+
+.item {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.item-header {
+    margin-bottom: 8px;
+}
+
+.item-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.item-company {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 2px;
+}
+
+.item-meta {
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 5px;
+}
+
+.item-description ul {
+    margin-left: 20px;
+    margin-top: 8px;
+}
+
+.item-description li {
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.skills-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.skill-group h4 {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.skill-list {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.projects .item-title {
+    font-size: 15px;
+}
+
+.project-tech {
+    font-size: 13px;
+    color: #666;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.project-link {
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+.project-link a {
+    color: #333;
+    text-decoration: none;
+    border-bottom: 1px dotted #333;
+}
+
+.certifications {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.cert-item {
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+.cert-name {
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.cert-issuer {
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.cert-date {
+    font-size: 12px;
+    color: #888;
+}
+
+@media print {
+    body {
+        padding: 0;
+    }
+    .controls {
+        display: none;
+    }
+    .resume {
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .resume {
+        padding: 20px;
+    }
+    .skills-section,
+    .certifications {
+        grid-template-columns: 1fr;
+    }
+    .controls {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+}
