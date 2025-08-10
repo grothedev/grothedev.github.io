@@ -32,7 +32,7 @@ section a {
 }
 section li {
     list-style-type: none;
-    margin: 2rem 1rem;
+    margin: 1rem 1rem;
 }
 section a:hover {
     text-decoration: underline;
