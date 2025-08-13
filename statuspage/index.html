@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> . : - : . </title>
+    <link rel = "stylesheet" href = "css/style.css" />
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>System Status Dashboard</h1>
+            <div class="subtitle">Local Network Services Monitor</div>
+        </div>
+
+        <div class="services-grid">
+            <!-- File Sync Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">File Sync</div>
+                    <div class="status-indicator online" id="filesync-status"></div>
+                </div>
+                <div class="service-description">
+                    Watches directories for modifications and keeps files in sync between hosts.
+                </div>
+                <div class="service-actions">
+                    <button class="action-btn primary">View Logs</button>
+                    <button class="action-btn secondary">Settings</button>
+                    <button class="action-btn secondary">Restart</button>
+                </div>
+                <div class="service-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Last Sync:</span>
+                        <span id="filesync-lastsync">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Files Synced:</span>
+                        <span id="filesync-count">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Active Watchers:</span>
+                        <span id="filesync-watchers">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Monitor Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">Network Monitor</div>
+                    <div class="status-indicator loading" id="networkmonitor-status"></div>
+                </div>
+                <div class="service-description">
+                    Monitors network connectivity and performance across local network devices.
+                </div>
+                <div class="service-actions">
+                    <button class="action-btn primary">View Details</button>
+                    <button class="action-btn secondary">Configure</button>
+                </div>
+                <div class="service-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Network Status:</span>
+                        <span id="network-status">Checking...</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Active Devices:</span>
+                        <span id="network-devices">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Latency:</span>
+                        <span id="network-latency">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Website Service -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">Website</div>
+                    <div class="status-indicator online" id="website-status"></div>
+                </div>
+                <div class="service-description">
+                    Personal website hosting and management.
+                </div>
+                <div class="service-actions">
+                    <a href="https://belthelziquor.com" target="_blank" class="action-btn primary">Visit Site</a>
+                    <button class="action-btn secondary">Analytics</button>
+                    <button class="action-btn secondary">Deploy</button>
+                </div>
+                <div class="service-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span id="website-response">200 OK</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Response Time:</span>
+                        <span id="website-response-time">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Last Deploy:</span>
+                        <span id="website-deploy">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Node.js Services -->
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-title">Node.js Services</div>
+                    <div class="status-indicator warning" id="nodejs-status"></div>
+                </div>
+                <div class="service-description">
+                    Collection of Node.js microservices and applications running on the system.
+                </div>
+                <div class="service-actions">
+                    <button class="action-btn primary">View All</button>
+                    <button class="action-btn secondary">Start All</button>
+                    <button class="action-btn secondary">Logs</button>
+                </div>
+                <div class="service-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Running:</span>
+                        <span id="nodejs-running">3/5</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Memory Usage:</span>
+                        <span id="nodejs-memory">--</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">CPU Usage:</span>
+                        <span id="nodejs-cpu">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Last updated: <span id="last-updated">--</span>
+        </div>
+    </div>
+    <script type = "text/javascript" src = "js/jq.js"></script>
+    <script type = "text/javascript" src = "js/home.js"></script>
+    
+</body>
+
+</html>
