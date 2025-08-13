@@ -1,6 +1,7 @@
-import { setupRenderSystem } from './render.js';
+import * as P from './pixi.min.mjs';
+import { setupRenderSystem } from './renderWithPixi.js'; //can "plug in" different rendering systems
 
-let ENVURL = "" //remote server from which to grab env
+let ENVURL = "https://belthelziquor/env"
 let env = {};
 let cfg = {}; //the user config
 let dom = {
@@ -8,31 +9,23 @@ let dom = {
     label: {},
     box: {}, //an info-containing box
     icon: {},
-    info: {}
+    info: {},
+    g: {}, //element to render graphics to. yes, it's just "g", deal with it
 };
-
+let app;
 
 //APP START HERE
 $(document).ready(async function() {
-    console.log('asdf');
-    //the core loop of the client application
     // 1. setup relationship with DOM and grab references to its elements
-    log('init DOM');
     await initDOM();
-    
-    log('init cfg');
-    await initCfg();
-
-    log('get env vars');
-    await getServerEnvVars();
-        
-    log('init services');
+    //await initCfg();
+    //await getServerEnvVars();
     await initServices();
+    //setupPixi();
 
-    setupRenderSystem();
-
-
+    setupRenderSystem(dom/*, cfg*/);
 });
+
 
 //gets user config from local storage if there is any
 function initCfg(){
@@ -49,7 +42,7 @@ function initCfg(){
 }
 
 async function getServerEnvVars(){
-    await axios.get(`${ENVURL}`).then((res)=>{
+    await axios.get(`${ENVURL}/env`).then((res)=>{
         env = res.data;
         //log(env);
     }).catch((err)=>{

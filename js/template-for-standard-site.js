@@ -1,4 +1,4 @@
-import { setupRenderSystem } from './render.js';
+//import { setupRenderSystem } from './render.js';
 
 let ENVURL = "" //remote server from which to grab env
 let env = {};
@@ -29,7 +29,7 @@ $(document).ready(async function() {
     log('init services');
     await initServices();
 
-    setupRenderSystem();
+    //setupRenderSystem();
 
 
 });

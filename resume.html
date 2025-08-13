@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Resume</title>
+</head>
+<body>
+    <div class="controls">
+        <button class="load-btn" onclick="toggleModal()">Load JSON</button>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3>Load Resume JSON</h3>
+            <textarea id="json-input" class="json-input" placeholder="Paste your JSON resume data here..."></textarea>
+            <div class="modal-buttons">
+                <button onclick="toggleModal()">Cancel</button>
+                <button class="primary" onclick="loadResume()">Load</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="resume" id="resume">
+        <!-- Content will be populated here -->
+    </div>
+</body>
+</html>
