@@ -1,0 +1,47 @@
+{
+    "Croak": {
+        "x": "float",
+        "y": "float",
+        "ip": "string",
+        "type": "int",
+        "content": "string",
+        "score": "int",
+        "parent_id": "int",
+        "user_id": "int",
+        "replies": "int",
+        "tags": "int[]",
+        "files": "int[]"
+    },
+    "Link": {
+        "label": "string",
+        "value": "string",
+        "tags": "int[]",
+        "description": "string"
+    },
+    "Tag": {
+        "label": "string",
+        "refs": "int"
+    },
+    "File": {
+        "filename": "string",
+        "path": "string",
+        "source": "string",
+        "description": "string",
+        "tags": "int[]"
+    },
+    "Vote": {
+        "user_id": "int",
+        "croak_id": "int",
+        "value": "int"
+    },
+    "Report": {
+        "user_id": "int",
+        "croak_id": "int",
+        "reason": "string"
+    },
+    "User": {
+        "username": "string",
+        "password": "string",
+        "email": "string"
+    }
+}

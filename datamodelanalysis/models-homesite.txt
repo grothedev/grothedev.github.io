@@ -1,0 +1,21 @@
+Link
+@defaults
+-label:string
+-value:string
+-tags:Tag[]
+-desc:string
+Tag
+@defaults
+-label:string
+-refs:int #how many objects have this tag associated with them
+File
+-filename:string
+-path:string
+-source:string #ip, user, link?
+-desc:string
+-tags:Tag[]
+User
+-name:string
+-email:string
+-description:string
+-password:string

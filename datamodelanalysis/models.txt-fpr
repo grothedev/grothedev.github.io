@@ -1,0 +1,32 @@
+Croak
+@defaults
+-x:float:encrypted
+-y:float:encrypted
+-ip:string:encrypted
+-type:int
+-Content:string
+-score:int
+-reports:0
+-parent:Croak
+-user:User
+-replies:0
+-tags:Tag[]
+-files:File[]
+Link
+@defaults
+-label:string
+-value:string
+-tags:Tag[]
+-desc:string
+Tag
+@defaults
+-label:string
+-refs:int #how many objects have this tag associated with them
+File
+-filename:string
+-path:string
+-source:string #ip, user, link?
+-desc:string
+-tags:Tag[]
+Vote
+Report

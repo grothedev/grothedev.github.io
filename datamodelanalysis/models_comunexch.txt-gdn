@@ -1,0 +1,10 @@
+Product
+-name:string
+-description:string
+-category:string #later foreign id
+-supplier:string #later foreign id
+-price:integer
+-email:string
+-phone:string
+-location:string
+-website:string

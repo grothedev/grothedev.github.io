@@ -1,0 +1,30 @@
+Product
+-name:string
+-desc_long:mediumText
+-desc_short:shortText
+-category_id:integer
+-price:double
+-unit:tinyText
+-date_made:date
+BlogPost
+-title:string
+-day:date
+-content:longText
+-author:string
+Category
+-label:string
+-desc:string
+Image
+-label:string
+-path:string
+Order
+-price_product:double
+-price_shipping:double
+-destination:string #address
+-weight:double
+-time_shipped:integer
+-time_arrive:integer #estimate until delivered
+-status:integer #pending,delivered,failed,etc.
+-tracking_info:string
+Cart
+-user_id:integer

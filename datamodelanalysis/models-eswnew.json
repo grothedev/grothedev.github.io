@@ -1,0 +1,17 @@
+{
+"Project": {
+    "name": "string",
+    "description": "string",
+    "leader_name": "string",
+    "leader_email": "string",
+    "leader2_name": "string",
+    "leader2_email": "string",
+    "category":
+    
+},
+"User": {},
+"Category": {
+    "label": "string",
+    "description": "string",
+}
+}

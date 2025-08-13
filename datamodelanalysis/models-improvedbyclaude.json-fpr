@@ -1,0 +1,48 @@
+{
+    "Croak": {
+        "x": {"type": "float", "required": true},
+        "y": {"type": "float", "required": true},
+        "ip": {"type": "string", "required": true},
+        "type": {"type": "int", "required": true},
+        "content": {"type": "string", "required": true},
+        "score": {"type": "int", "required": true, "default": 0},
+        "parent_id": {"type": "uuid", "references": "Croak"},
+        "user_id": {"type": "uuid", "required": true, "references": "User"},
+        "replies": {"type": "int", "default": 0},
+        "tags": {"type": "uuid[]", "references": "Tag"},
+        "files": {"type": "uuid[]", "references": "File"}
+    },
+    "Link": {
+        "label": {"type": "string", "required": true},
+        "value": {"type": "string", "required": true},
+        "tags": {"type": "uuid[]", "references": "Tag"},
+        "description": {"type": "string"}
+    },
+    "Tag": {
+        "label": {"type": "string", "required": true, "unique": true},
+        "refs": {"type": "int", "default": 0}
+    },
+    "File": {
+        "filename": {"type": "string", "required": true},
+        "path": {"type": "string", "required": true},
+        "source": {"type": "string"},
+        "description": {"type": "string"},
+        "tags": {"type": "uuid[]", "references": "Tag"},
+        "md5": {"type": "string"}
+    },
+    "Vote": {
+        "user_id": {"type": "uuid", "required": true, "references": "User"},
+        "croak_id": {"type": "uuid", "required": true, "references": "Croak"},
+        "value": {"type": "int", "required": true}
+    },
+    "Report": {
+        "user_id": {"type": "uuid", "required": true, "references": "User"},
+        "croak_id": {"type": "uuid", "required": true, "references": "Croak"},
+        "reason": {"type": "string", "required": true}
+    },
+    "User": {
+        "username": {"type": "string", "required": true, "unique": true},
+        "password": {"type": "string", "required": true},
+        "email": {"type": "string", "required": true, "unique": true}
+    }
+}
