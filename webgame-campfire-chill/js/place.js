@@ -1,5 +1,5 @@
 import * as P from './pixi.min.mjs';
-import { setupRenderSystem } from './renderWithPixi.js'; //can "plug in" different rendering systems
+import setupRenderSystem from './renderWithPixi.js'; //can "plug in" different rendering systems
 
 let ENVURL = "https://belthelziquor/env"
 let env = {};
@@ -17,13 +17,13 @@ let app;
 //APP START HERE
 $(document).ready(async function() {
     // 1. setup relationship with DOM and grab references to its elements
-    await initDOM();
+    initDOM();
     //await initCfg();
     //await getServerEnvVars();
-    await initServices();
+    initServices();
     //setupPixi();
-
-    setupRenderSystem(dom/*, cfg*/);
+    resizeCanvas();
+    //setupRenderSystem(dom.g/*, cfg*/);
 });
 
 
@@ -58,6 +58,7 @@ function initServices(){
 
 function initDOM(){
     dom.body = $('body')[0];
+    dom.g = $('#g')[0]; //the canvas
 }
 
 function log(msg, lvl=1){
@@ -65,4 +66,9 @@ function log(msg, lvl=1){
         dom.debugInfo.innerHTML = msg; //TODO running log + timestamp
     }
     console.log(msg);
+}
+
+function resizeCanvas() {
+    dom.g.width = .7*window.outerWidth;
+    dom.g.height = .5* window.outerHeight;
 }
