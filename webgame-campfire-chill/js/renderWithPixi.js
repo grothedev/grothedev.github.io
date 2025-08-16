@@ -1,30 +1,39 @@
-let dom = {};
+//let dom = {};
+let g = {};
 let path_assets = ''; //textures, sounds, etc. . can also load from remote server
 
+let m = {
+    //give the canvas element for interaction between pixi-space and dom-space
+    setupRenderSystem: (canvas = null) => {
+        g = canvas;
+        setupPixi();
+        resizeCanvas();
+    },
 
-//give the dom for interaction between pixi-space and dom-space
-function setupRenderSystem(dom = null){
-    dom = dom;
-    setupPixi();
-}
+    setupPixi: () => {
+        app = new P.Application();
+        app.init({background: '#104432'}).then(async ()=>{
+            dom.g.appendChild(app.view);
+        });
+        //loadResources();
+        drawPlayer();
+    },
 
-function setupPixi(){
-    app = new P.Application();
-    app.init({background: '#104432'}).then(async ()=>{
-        dom.g.appendChild(app.view);
-    });
-    //loadResources();
-    drawPlayer();
-}
+    loadResources: () => {
+        //grab the list of resources to load from config
+        app.loader.baseurl('./res/');
+        app.loader.add('player', 'player.png');
+    },
 
-function loadResources(){
-    //grab the list of resources to load from config
-    app.loader.baseurl('./res/');
-    app.loader.add('player', 'player.png');
-}
+    //draw(){}
 
-function draw(){}
+    //drawPlayer(){}
+    resizeCanvas: () => {
+        W = window.outerWidth;
+        H = window.outerHeight;
+        dom.cnv.width = W;
+        dom.cnv.height = H;
+    }
+};
 
-function drawPlayer(){
-    
-}
+export default m;
