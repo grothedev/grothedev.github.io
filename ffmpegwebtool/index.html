@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg Web Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #555;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="file"], input[type="url"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .input-type {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .input-type label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FFmpeg Web Tool</h1>
+        
+        <form id="ffmpegForm" enctype="multipart/form-data">
+            <div class="section">
+                <h2>Input Source</h2>
+                
+                <div class="input-type">
+                    <label>
+                        <input type="radio" name="inputType" value="file" checked> Local File
+                    </label>
+                    <label>
+                        <input type="radio" name="inputType" value="url"> Remote URL
+                    </label>
+                </div>
+                
+                <div class="form-group" id="fileInput">
+                    <label for="inputFile">Select File:</label>
+                    <input type="file" id="inputFile" name="inputFile" accept="audio/*,video/*">
+                </div>
+                
+                <div class="form-group hidden" id="urlInput">
+                    <label for="inputUrl">Remote URL:</label>
+                    <input type="url" id="inputUrl" name="inputUrl" placeholder="https://example.com/video.mp4">
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Output Options</h2>
+                
+                <div class="form-group">
+                    <label for="outputFormat">Output Format:</label>
+                    <select id="outputFormat" name="outputFormat">
+                        <option value="mp4">MP4 (H.264)</option>
+                        <option value="avi">AVI</option>
+                        <option value="mov">MOV</option>
+                        <option value="mkv">MKV</option>
+                        <option value="webm">WebM</option>
+                        <option value="mp3">MP3 (Audio only)</option>
+                        <option value="wav">WAV (Audio only)</option>
+                        <option value="flac">FLAC (Audio only)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="quality">Quality:</label>
+                    <select id="quality" name="quality">
+                        <option value="high">High</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="customOptions">Custom FFmpeg Options (Advanced):</label>
+                    <textarea id="customOptions" name="customOptions" rows="3" placeholder="-vf scale=1280:720 -b:v 1M"></textarea>
+                </div>
+            </div>
+            
+            <button type="submit">Process with FFmpeg</button>
+        </form>
+        
+        <div id="output" class="output hidden"></div>
+        <div id="downloadLink" class="hidden"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputTypeRadios = document.querySelectorAll('input[name="inputType"]');
+            const fileInput = document.getElementById('fileInput');
+            const urlInput = document.getElementById('urlInput');
+            const form = document.getElementById('ffmpegForm');
+            const output = document.getElementById('output');
+            const downloadLink = document.getElementById('downloadLink');
+            
+            inputTypeRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'file') {
+                        fileInput.classList.remove('hidden');
+                        urlInput.classList.add('hidden');
+                    } else {
+                        fileInput.classList.add('hidden');
+                        urlInput.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                output.classList.remove('hidden');
+                output.textContent = 'Processing...';
+                downloadLink.classList.add('hidden');
+                
+                const formData = new FormData(form);
+                
+                fetch('process.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        output.textContent = 'Processing completed successfully!\n\n' + data.log;
+                        if (data.outputFile) {
+                            downloadLink.innerHTML = '<a href="' + data.outputFile + '" download>Download Processed File</a>';
+                            downloadLink.classList.remove('hidden');
+                        }
+                    } else {
+                        output.textContent = 'Error: ' + data.error + '\n\n' + (data.log || '');
+                    }
+                })
+                .catch(error => {
+                    output.textContent = 'Network error: ' + error.message;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
