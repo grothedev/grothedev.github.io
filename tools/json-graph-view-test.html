@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Graph Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+            margin: 0;
+        }
+        
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        #error-msg {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        #graph-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+            height: 600px;
+        }
+        
+        #canvas {
+            display: block;
+            cursor: grab;
+        }
+        
+        #canvas:active {
+            cursor: grabbing;
+        }
+        
+        .legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            font-size: 12px;
+            pointer-events: none;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 16px;
+            border-radius: 3px;
+            margin-right: 8px;
+            border: 2px solid;
+        }
+        
+        .instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #666;
+            pointer-events: none;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            max-width: 300px;
+            display: none;
+            font-size: 12px;
+        }
+        
+        .info-panel.visible {
+            display: block;
+        }
+        
+        .info-panel .info-key {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .info-panel .info-value {
+            color: #666;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+        }
+        
+        .info-panel .info-type {
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <label for="file-input" style="display: block; margin-bottom: 10px; font-weight: bold;">Load JSON file:</label>
+        <input type="file" id="file-input" accept=".json" style="padding: 5px;">
+        <div id="error-msg"></div>
+    </div>
+    
+    <div id="graph-container">
+        <canvas id="canvas"></canvas>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #2196F3; background: #E3F2FD;"></div>
+                <span>Object</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #FF9800; background: #FFF3E0;"></div>
+                <span>Array</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #9C27B0; background: #F3E5F5;"></div>
+                <span>Value</span>
+            </div>
+        </div>
+        <div class="instructions">
+            Click & drag to pan • Scroll to zoom • Click node to select
+        </div>
+        <div class="info-panel" id="info-panel">
+            <div class="info-key" id="info-key"></div>
+            <div class="info-value" id="info-value"></div>
+            <div class="info-type" id="info-type"></div>
+        </div>
+    </div>
+
+    <script>
+        const MIN_NODE_WIDTH = 100;
+        const MAX_NODE_WIDTH = 200;
+        const NODE_PADDING = 8;
+        const LINE_HEIGHT = 14;
+        const MAX_LINES = 6;
+        const LEVEL_HEIGHT = 100;
+        const MIN_SIBLING_SPACING = 50;
+        const SIBLING_Y_STAGGER = 30;
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let camera = {
+            x: 0,
+            y: 0,
+            scale: 1
+        };
+        
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let rootNode = null;
+        let selectedNode = null;
+
+        function resizeCanvas() {
+            const container = document.getElementById('graph-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            if (rootNode) drawGraph();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function getNodeType(value) {
+            if (Array.isArray(value)) return 'array';
+            if (typeof value === 'object' && value !== null) return 'object';
+            return 'value';
+        }
+
+        function formatValue(value, maxLength = 100) {
+            if (value === null) return 'null';
+            if (typeof value === 'string') {
+                return value.length > maxLength ? `"${value.substring(0, maxLength - 3)}..."` : `"${value}"`;
+            }
+            if (typeof value === 'boolean') return String(value);
+            if (typeof value === 'number') return String(value);
+            return String(value);
+        }
+
+        function getFullValue(value) {
+            if (value === null) return 'null';
+            if (typeof value === 'string') return `"${value}"`;
+            if (typeof value === 'object') return JSON.stringify(value, null, 2);
+            return String(value);
+        }
+
+        function wrapText(text, maxWidth) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+
+            for (const word of words) {
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                const metrics = ctx.measureText(testLine);
+                
+                if (metrics.width > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+                
+                if (lines.length >= MAX_LINES - 1) {
+                    break;
+                }
+            }
+            
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
+            return lines.slice(0, MAX_LINES);
+        }
+
+        function measureNodeDimensions(key, valueText) {
+            ctx.font = 'bold 10px Arial';
+            const keyWidth = ctx.measureText(key).width;
+            
+            ctx.font = '9px Arial';
+            const maxTextWidth = MAX_NODE_WIDTH - NODE_PADDING * 2;
+            const valueLines = wrapText(valueText, maxTextWidth);
+            
+            let maxLineWidth = keyWidth;
+            valueLines.forEach(line => {
+                const lineWidth = ctx.measureText(line).width;
+                if (lineWidth > maxLineWidth) maxLineWidth = lineWidth;
+            });
+            
+            const width = Math.max(MIN_NODE_WIDTH, Math.min(MAX_NODE_WIDTH, maxLineWidth + NODE_PADDING * 2));
+            const height = NODE_PADDING * 2 + LINE_HEIGHT + (valueLines.length * LINE_HEIGHT);
+            
+            return { width, height, valueLines };
+        }
+
+        function createTreeNode(data, key = 'root', parent = null) {
+            let valueText = '';
+            const type = getNodeType(data);
+            
+            if (type === 'value') {
+                valueText = formatValue(data, 200);
+            } else if (type === 'array') {
+                valueText = `Array[${Array.isArray(data) ? data.length : 0}]`;
+            } else {
+                valueText = `Object{${Object.keys(data).length}}`;
+            }
+
+            const dimensions = measureNodeDimensions(key, valueText);
+
+            const node = {
+                key: key,
+                value: data,
+                type: type,
+                children: [],
+                parent: parent,
+                x: 0,
+                y: 0,
+                width: dimensions.width,
+                height: dimensions.height,
+                valueText: valueText,
+                valueLines: dimensions.valueLines
+            };
+
+            if (Array.isArray(data)) {
+                data.forEach((item, index) => {
+                    node.children.push(createTreeNode(item, `[${index}]`, node));
+                });
+            } else if (typeof data === 'object' && data !== null) {
+                Object.keys(data).forEach(k => {
+                    node.children.push(createTreeNode(data[k], k, node));
+                });
+            }
+
+            return node;
+        }
+
+        function calculateLayout(node, level = 0, leftBound = 0) {
+            node.y = level * LEVEL_HEIGHT + 50;
+
+            if (node.children.length === 0) {
+                node.x = leftBound + node.width / 2;
+                return node.x + node.width / 2 + MIN_SIBLING_SPACING;
+            }
+
+            // Calculate positions for all children first
+            let childX = leftBound;
+            let previousChild = null;
+            
+            node.children.forEach((child, index) => {
+                childX = calculateLayout(child, level + 1, childX);
+                
+                // Check if this child would overlap with previous sibling
+                if (previousChild) {
+                    const horizontalGap = child.x - previousChild.x;
+                    const minRequired = (previousChild.width + child.width) / 2 + MIN_SIBLING_SPACING;
+                    
+                    // If they're too close horizontally, stagger vertically
+                    if (horizontalGap < minRequired) {
+                        child.y = previousChild.y + SIBLING_Y_STAGGER;
+                        
+                        // Propagate the stagger to all descendants
+                        function adjustDescendants(n, yOffset) {
+                            n.y += yOffset;
+                            n.children.forEach(c => adjustDescendants(c, yOffset));
+                        }
+                        adjustDescendants(child, SIBLING_Y_STAGGER);
+                    }
+                }
+                
+                previousChild = child;
+            });
+
+            const firstChild = node.children[0];
+            const lastChild = node.children[node.children.length - 1];
+            node.x = (firstChild.x + lastChild.x) / 2;
+
+            return Math.max(childX, node.x + node.width / 2 + MIN_SIBLING_SPACING);
+        }
+
+        function isPointInNode(x, y, node) {
+            const nx = (node.x + camera.x) * camera.scale;
+            const ny = (node.y + camera.y) * camera.scale;
+            const width = node.width * camera.scale;
+            const height = node.height * camera.scale;
+
+            return x >= nx - width / 2 && x <= nx + width / 2 &&
+                   y >= ny - height / 2 && y <= ny + height / 2;
+        }
+
+        function findNodeAtPoint(x, y, node) {
+            if (isPointInNode(x, y, node)) {
+                return node;
+            }
+
+            for (const child of node.children) {
+                const found = findNodeAtPoint(x, y, child);
+                if (found) return found;
+            }
+
+            return null;
+        }
+
+        function drawNode(node) {
+            const x = (node.x + camera.x) * camera.scale;
+            const y = (node.y + camera.y) * camera.scale;
+            const width = node.width * camera.scale;
+            const height = node.height * camera.scale;
+
+            const colors = {
+                object: { stroke: '#2196F3', fill: '#E3F2FD' },
+                array: { stroke: '#FF9800', fill: '#FFF3E0' },
+                value: { stroke: '#9C27B0', fill: '#F3E5F5' }
+            };
+
+            const color = colors[node.type];
+            
+            // Highlight selected node
+            if (node === selectedNode) {
+                ctx.fillStyle = '#FFD700';
+                ctx.strokeStyle = '#FFA500';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = 'rgba(255, 215, 0, 0.5)';
+                ctx.shadowBlur = 10;
+            } else {
+                ctx.fillStyle = color.fill;
+                ctx.strokeStyle = color.stroke;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 0;
+            }
+            
+            ctx.beginPath();
+            ctx.roundRect(x - width / 2, y - height / 2, width, height, 5 * camera.scale);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Draw text - left aligned with less padding
+            const padding = NODE_PADDING * camera.scale;
+            const textX = x - width / 2 + padding;
+            const textY = y - height / 2 + padding;
+
+            ctx.fillStyle = node === selectedNode ? '#000' : '#333';
+            ctx.font = `bold ${10 * camera.scale}px Arial`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            
+            const keyText = node.key.length > 50 ? node.key.substring(0, 47) + '...' : node.key;
+            ctx.fillText(keyText, textX, textY);
+
+            ctx.fillStyle = node === selectedNode ? '#222' : '#666';
+            ctx.font = `${9 * camera.scale}px Arial`;
+            
+            node.valueLines.forEach((line, i) => {
+                ctx.fillText(line, textX, textY + (LINE_HEIGHT * (i + 1) * camera.scale));
+            });
+        }
+
+        function drawLink(source, target) {
+            const sx = (source.x + camera.x) * camera.scale;
+            const sy = (source.y + camera.y) * camera.scale + (source.height / 2) * camera.scale;
+            const tx = (target.x + camera.x) * camera.scale;
+            const ty = (target.y + camera.y) * camera.scale - (target.height / 2) * camera.scale;
+
+            const midY = (sy + ty) / 2;
+
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.bezierCurveTo(sx, midY, tx, midY, tx, ty);
+            ctx.stroke();
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (!rootNode) return;
+
+            const nodes = [];
+            const links = [];
+
+            function traverse(node) {
+                nodes.push(node);
+                node.children.forEach(child => {
+                    links.push({ source: node, target: child });
+                    traverse(child);
+                });
+            }
+            traverse(rootNode);
+
+            links.forEach(link => drawLink(link.source, link.target));
+            nodes.forEach(node => drawNode(node));
+        }
+
+        function selectNode(node) {
+            selectedNode = node;
+            
+            const infoPanel = document.getElementById('info-panel');
+            const infoKey = document.getElementById('info-key');
+            const infoValue = document.getElementById('info-value');
+            const infoType = document.getElementById('info-type');
+
+            if (node) {
+                infoPanel.classList.add('visible');
+                infoKey.textContent = `Key: ${node.key}`;
+                
+                if (node.type === 'value') {
+                    infoValue.textContent = getFullValue(node.value);
+                } else if (node.type === 'array') {
+                    infoValue.textContent = `Array with ${node.children.length} items`;
+                } else {
+                    infoValue.textContent = `Object with ${node.children.length} properties`;
+                }
+                
+                infoType.textContent = `Type: ${node.type}`;
+            } else {
+                infoPanel.classList.remove('visible');
+            }
+
+            drawGraph();
+        }
+
+        function loadJSON(jsonData) {
+            try {
+                const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+                rootNode = createTreeNode(data);
+                calculateLayout(rootNode);
+                
+                camera.x = canvas.width / 2 / camera.scale;
+                camera.y = 50;
+                
+                selectedNode = null;
+                selectNode(null);
+                drawGraph();
+                document.getElementById('error-msg').style.display = 'none';
+            } catch (e) {
+                const errorMsg = document.getElementById('error-msg');
+                errorMsg.textContent = 'Error parsing JSON: ' + e.message;
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        let mouseDownPos = null;
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseDownPos = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+            
+            isDragging = true;
+            dragStart = {
+                x: e.clientX - camera.x * camera.scale,
+                y: e.clientY - camera.y * camera.scale
+            };
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                camera.x = (e.clientX - dragStart.x) / camera.scale;
+                camera.y = (e.clientY - dragStart.y) / camera.scale;
+                drawGraph();
+            }
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseUpPos = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+
+            const dragDistance = Math.sqrt(
+                Math.pow(mouseUpPos.x - mouseDownPos.x, 2) +
+                Math.pow(mouseUpPos.y - mouseDownPos.y, 2)
+            );
+
+            if (dragDistance < 5 && rootNode) {
+                const clickedNode = findNodeAtPoint(mouseUpPos.x, mouseUpPos.y, rootNode);
+                selectNode(clickedNode);
+            }
+
+            isDragging = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const worldX = mouseX / camera.scale - camera.x;
+            const worldY = mouseY / camera.scale - camera.y;
+            
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newScale = Math.max(0.1, Math.min(3, camera.scale * zoomFactor));
+            
+            camera.scale = newScale;
+            camera.x = mouseX / camera.scale - worldX;
+            camera.y = mouseY / camera.scale - worldY;
+            
+            drawGraph();
+        });
+
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    loadJSON(event.target.result);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        const defaultData = {
+            "name": "John Doe",
+            "age": 30,
+            "active": true,
+            "email": null,
+            "address": {
+                "street": "123 Main St",
+                "city": "New York",
+                "zip": "10001"
+            },
+            "hobbies": ["reading", "gaming", "cooking"],
+            "scores": [95, 87, 92]
+        };
+        loadJSON(defaultData);
+    </script>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collapsible Tree</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .tree {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: 70vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        #tree-root {
+            padding-left: 0;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        .node {
+            cursor: pointer;
+            user-select: none;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background 0.1s;
+        }
+
+        .node:hover {
+            background: #f0f0f0;
+        }
+
+        .toggle {
+            display: inline-block;
+            width: 20px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .children {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.1s ease;
+        }
+
+        .children.collapsed {
+            max-height: 0;
+        }
+
+        .value {
+            color: #0066cc;
+            font-weight: normal;
+        }
+
+        .key {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .type {
+            color: #999;
+            font-size: 0.85em;
+            margin-left: 8px;
+        }
+
+        .string { color: #008000; }
+        .number { color: #ff8800; }
+        .boolean { color: #0000ff; }
+        .null { color: #999; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <label for="file-input" style="display: block; margin-bottom: 10px; font-weight: bold;">Load JSON file:</label>
+        <input type="file" id="file-input" accept=".json" style="padding: 5px;">
+        <div id="error-msg" style="color: red; margin-top: 10px; display: none;"></div>
+    </div>
+
+    <div class="tree">
+        <ul id="tree-root"></ul>
+    </div>
+
+    <script>
+        function collapseAllChildren(element, collapse) {
+            const children = element.querySelectorAll('.children');
+            const toggles = element.querySelectorAll('.toggle');
+            
+            children.forEach(child => {
+                if (collapse) {
+                    child.classList.add('collapsed');
+                } else {
+                    child.classList.remove('collapsed');
+                }
+            });
+            
+            toggles.forEach(toggle => {
+                if (toggle.textContent === '▼' || toggle.textContent === '▶') {
+                    toggle.textContent = collapse ? '▶' : '▼';
+                }
+            });
+        }
+
+        function scrollNodeIntoView(node) {
+            const tree = document.querySelector('.tree');
+            const nodeRect = node.getBoundingClientRect();
+            const treeRect = tree.getBoundingClientRect();
+            if (nodeRect.bottom > treeRect.bottom) {
+                tree.scrollTop += nodeRect.bottom - treeRect.bottom + 10;
+            }
+        }
+
+        function attachNodeListeners() {
+            document.querySelectorAll('.node').forEach(node => {
+                node.replaceWith(node.cloneNode(true));
+            });
+
+            document.querySelectorAll('.node').forEach(node => {
+                node.addEventListener('click', function(e) {
+                    e.stopPropagation();
+
+                    const parent = this.parentElement;
+                    const children = parent.querySelector('.children');
+                    const toggle = this.querySelector('.toggle');
+
+                    if (children) {
+                        if (e.ctrlKey || e.metaKey) {
+                            // Ctrl+click: collapse/expand all children recursively
+                            const isCollapsed = children.classList.contains('collapsed');
+                            collapseAllChildren(parent, !isCollapsed);
+                        } else {
+                            // Normal click: toggle just this node
+                            children.classList.toggle('collapsed');
+                            toggle.textContent = children.classList.contains('collapsed') ? '▶' : '▼';
+                            if (!children.classList.contains('collapsed')) {
+                                scrollNodeIntoView(parent);
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function getValueClass(value) {
+            if (value === null) return 'null';
+            if (typeof value === 'string') return 'string';
+            if (typeof value === 'number') return 'number';
+            if (typeof value === 'boolean') return 'boolean';
+            return '';
+        }
+
+        function formatValue(value) {
+            if (value === null) return 'null';
+            if (typeof value === 'string') return `"${value}"`;
+            return String(value);
+        }
+
+        function buildTree(data, key = null) {
+            const li = document.createElement('li');
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'node';
+
+            const toggle = document.createElement('span');
+            toggle.className = 'toggle';
+
+            const label = document.createElement('span');
+
+            if (key !== null) {
+                const keySpan = document.createElement('span');
+                keySpan.className = 'key';
+                keySpan.textContent = key + ': ';
+                label.appendChild(keySpan);
+            }
+
+            if (Array.isArray(data)) {
+                toggle.textContent = '▶';
+                const typeSpan = document.createElement('span');
+                typeSpan.className = 'type';
+                typeSpan.textContent = `Array[${data.length}]`;
+                label.appendChild(typeSpan);
+
+                nodeDiv.appendChild(toggle);
+                nodeDiv.appendChild(label);
+                li.appendChild(nodeDiv);
+
+                const childrenUl = document.createElement('ul');
+                childrenUl.className = 'children collapsed';
+
+                data.forEach((item, index) => {
+                    childrenUl.appendChild(buildTree(item, index));
+                });
+
+                li.appendChild(childrenUl);
+            } else if (typeof data === 'object' && data !== null) {
+                const keys = Object.keys(data);
+                toggle.textContent = '▶';
+                const typeSpan = document.createElement('span');
+                typeSpan.className = 'type';
+                typeSpan.textContent = `Object`;
+                label.appendChild(typeSpan);
+
+                nodeDiv.appendChild(toggle);
+                nodeDiv.appendChild(label);
+                li.appendChild(nodeDiv);
+
+                const childrenUl = document.createElement('ul');
+                childrenUl.className = 'children collapsed';
+
+                keys.forEach(k => {
+                    childrenUl.appendChild(buildTree(data[k], k));
+                });
+
+                li.appendChild(childrenUl);
+            } else {
+                li.className = 'leaf';
+                toggle.textContent = '•';
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'value ' + getValueClass(data);
+                valueSpan.textContent = formatValue(data);
+                label.appendChild(valueSpan);
+
+                nodeDiv.appendChild(toggle);
+                nodeDiv.appendChild(label);
+                li.appendChild(nodeDiv);
+            }
+
+            return li;
+        }
+
+        function loadJSON(jsonData) {
+            const root = document.getElementById('tree-root');
+            root.innerHTML = '';
+
+            try {
+                const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+                root.appendChild(buildTree(data, 'root'));
+                attachNodeListeners();
+                document.getElementById('error-msg').style.display = 'none';
+            } catch (e) {
+                const errorMsg = document.getElementById('error-msg');
+                errorMsg.textContent = 'Error parsing JSON: ' + e.message;
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    loadJSON(event.target.result);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Load default example
+        const defaultData = {
+            "name": "John Doe",
+            "age": 30,
+            "active": true,
+            "email": null,
+            "address": {
+                "street": "123 Main St",
+                "city": "New York",
+                "zip": "10001"
+            },
+            "hobbies": ["reading", "gaming", "cooking"],
+            "scores": [95, 87, 92]
+        };
+        loadJSON(defaultData);
+    </script>
+</body>
+</html>
