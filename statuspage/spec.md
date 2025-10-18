@@ -9,12 +9,16 @@ services:
 	- website
 		- https://belthelziquor.com
 	- nodejs services
-		- TODO 
-		-
+		- discord mubot
+		- websocket server
+	- systemd services
 		
 UI:
 	- boxes for each service that provide some options for interfacing with the service and viewing more details
 	-
+
+tech-impl:
+	- there is a "systemd service status web service" that returns html snippets representing service status info. this makes it so that the client doesn't have to know about the relevnt fields to every service, which is helpful  because it dosn't have to update client code when a new service added (or current one changed) and reduces amount of client code. 
 
 the entire webapp downloads and stores an application in the users localstorage.
 if connection lost, user can still interact with the website services while offline.

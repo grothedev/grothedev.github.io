@@ -1,0 +1,55 @@
+RewriteEngine On
+
+# Enable directory browsing for output files
+Options +Indexes
+
+# Set proper MIME types
+AddType video/mp4 .mp4
+AddType video/avi .avi
+AddType video/quicktime .mov
+AddType video/x-msvideo .avi
+AddType video/webm .webm
+AddType video/x-matroska .mkv
+AddType audio/mpeg .mp3
+AddType audio/wav .wav
+AddType audio/flac .flac
+
+# Security: Prevent access to sensitive files
+<Files ~ "\.php$">
+    # Allow only process.php to be accessed
+    <If "%{REQUEST_URI} !~ /process\.php$">
+        Deny from all
+    </If>
+</Files>
+
+# Prevent access to hidden files
+<Files ~ "^\.">
+    Deny from all
+</Files>
+
+# Set upload limits
+php_value upload_max_filesize 500M
+php_value post_max_size 500M
+php_value max_execution_time 300
+php_value max_input_time 300
+
+# Enable compression for text files
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+</IfModule>
+
+# Cache control for media files
+<IfModule mod_expires.c>
+    ExpiresActive on
+    ExpiresByType video/mp4 "access plus 1 hour"
+    ExpiresByType audio/mpeg "access plus 1 hour"
+    ExpiresByType audio/wav "access plus 1 hour"
+</IfModule>

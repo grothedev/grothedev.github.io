@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Graph Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+            margin: 0;
+        }
+
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        #error-msg {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+
+        #graph-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            height: 1000px;
+        }
+
+        #canvas {
+            display: block;
+            cursor: grab;
+        }
+
+        #canvas:active {
+            cursor: grabbing;
+        }
+
+        .legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 16px;
+            border-radius: 3px;
+            margin-right: 8px;
+            border: 2px solid;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #666;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <label for="file-input" style="display: block; margin-bottom: 10px; font-weight: bold;">Load JSON file:</label>
+        <input type="file" id="file-input" accept=".json" style="padding: 5px;">
+        <div id="error-msg"></div>
+    </div>
+
+    <div id="graph-container">
+        <canvas id="canvas"></canvas>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #2196F3; background: #E3F2FD;"></div>
+                <span>Object</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #FF9800; background: #FFF3E0;"></div>
+                <span>Array</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #9C27B0; background: #F3E5F5;"></div>
+                <span>Value</span>
+            </div>
+        </div>
+        <div class="instructions">
+            Click & drag to pan • Scroll to zoom
+        </div>
+    </div>
+
+    <script>
+        const NODE_WIDTH = 120;
+        const NODE_HEIGHT = 50;
+        const LEVEL_HEIGHT = 120;
+        const MIN_SIBLING_SPACING = 140;
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let camera = {
+            x: 0,
+            y: 0,
+            scale: 1
+        };
+
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let rootNode = null;
+
+        function resizeCanvas() {
+            const container = document.getElementById('graph-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            if (rootNode) drawGraph();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function getNodeType(value) {
+            if (Array.isArray(value)) return 'array';
+            if (typeof value === 'object' && value !== null) return 'object';
+            return 'value';
+        }
+
+        function formatValue(value) {
+            if (value === null) return 'null';
+            if (typeof value === 'string') return value.length > 15 ? `"${value.substring(0, 12)}..."` : `"${value}"`;
+            if (typeof value === 'boolean') return String(value);
+            if (typeof value === 'number') return String(value);
+            return String(value);
+        }
+
+        function createTreeNode(data, key = 'root', parent = null) {
+            const node = {
+                key: key,
+                value: data,
+                type: getNodeType(data),
+                children: [],
+                parent: parent,
+                x: 0,
+                y: 0
+            };
+
+            if (Array.isArray(data)) {
+                data.forEach((item, index) => {
+                    node.children.push(createTreeNode(item, `[${index}]`, node));
+                });
+            } else if (typeof data === 'object' && data !== null) {
+                Object.keys(data).forEach(k => {
+                    node.children.push(createTreeNode(data[k], k, node));
+                });
+            }
+
+            return node;
+        }
+
+        function calculateLayout(node, level = 0, leftBound = 0) {
+            node.y = level * LEVEL_HEIGHT + 50;
+
+            if (node.children.length === 0) {
+                node.x = leftBound + MIN_SIBLING_SPACING / 2;
+                return node.x + MIN_SIBLING_SPACING / 2;
+            }
+
+            let childX = leftBound;
+            node.children.forEach(child => {
+                childX = calculateLayout(child, level + 1, childX);
+            });
+
+            const firstChild = node.children[0];
+            const lastChild = node.children[node.children.length - 1];
+            node.x = (firstChild.x + lastChild.x) / 2;
+
+            return childX;
+        }
+
+        function drawNode(node) {
+            const x = (node.x + camera.x) * camera.scale;
+            const y = (node.y + camera.y) * camera.scale;
+            const width = NODE_WIDTH * camera.scale;
+            const height = NODE_HEIGHT * camera.scale;
+
+            // Draw rectangle
+            const colors = {
+                object: { stroke: '#2196F3', fill: '#E3F2FD' },
+                array: { stroke: '#FF9800', fill: '#FFF3E0' },
+                value: { stroke: '#9C27B0', fill: '#F3E5F5' }
+            };
+
+            const color = colors[node.type];
+
+            ctx.fillStyle = color.fill;
+            ctx.strokeStyle = color.stroke;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(x - width / 2, y - height / 2, width, height, 5 * camera.scale);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw text
+            ctx.fillStyle = '#333';
+            ctx.font = `bold ${12 * camera.scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const keyText = node.key.length > 18 ? node.key.substring(0, 15) + '...' : node.key;
+            ctx.fillText(keyText, x, y - 8 * camera.scale);
+
+            ctx.fillStyle = '#666';
+            ctx.font = `${12 * camera.scale}px Arial`;
+
+            let valueText = '';
+            if (node.type === 'value') {
+                valueText = formatValue(node.value);
+            } else if (node.type === 'array') {
+                valueText = `Array[${node.children.length}]`;
+            } else {
+                valueText = `Object{${node.children.length}}`;
+            }
+            ctx.fillText(valueText, x, y + 8 * camera.scale);
+        }
+
+        function drawLink(source, target) {
+            const sx = (source.x + camera.x) * camera.scale;
+            const sy = (source.y + camera.y) * camera.scale + (NODE_HEIGHT / 2) * camera.scale;
+            const tx = (target.x + camera.x) * camera.scale;
+            const ty = (target.y + camera.y) * camera.scale - (NODE_HEIGHT / 2) * camera.scale;
+
+            const midY = (sy + ty) / 2;
+
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.bezierCurveTo(sx, midY, tx, midY, tx, ty);
+            ctx.stroke();
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!rootNode) return;
+
+            const nodes = [];
+            const links = [];
+
+            function traverse(node) {
+                nodes.push(node);
+                node.children.forEach(child => {
+                    links.push({ source: node, target: child });
+                    traverse(child);
+                });
+            }
+            traverse(rootNode);
+
+            // Draw links first
+            links.forEach(link => drawLink(link.source, link.target));
+
+            // Draw nodes on top
+            nodes.forEach(node => drawNode(node));
+        }
+
+        function loadJSON(jsonData) {
+            try {
+                const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+                rootNode = createTreeNode(data);
+                calculateLayout(rootNode);
+
+                // Center the graph
+                camera.x = canvas.width / 2 / camera.scale;
+                camera.y = 50;
+
+                drawGraph();
+                document.getElementById('error-msg').style.display = 'none';
+            } catch (e) {
+                const errorMsg = document.getElementById('error-msg');
+                errorMsg.textContent = 'Error parsing JSON: ' + e.message;
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        // Mouse events for panning
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            dragStart = {
+                x: e.clientX - camera.x * camera.scale,
+                y: e.clientY - camera.y * camera.scale
+            };
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                camera.x = (e.clientX - dragStart.x) / camera.scale;
+                camera.y = (e.clientY - dragStart.y) / camera.scale;
+                drawGraph();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+
+        // Zoom with mouse wheel
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const worldX = mouseX / camera.scale - camera.x;
+            const worldY = mouseY / camera.scale - camera.y;
+
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newScale = Math.max(0.1, Math.min(3, camera.scale * zoomFactor));
+
+            camera.scale = newScale;
+            camera.x = mouseX / camera.scale - worldX;
+            camera.y = mouseY / camera.scale - worldY;
+
+            drawGraph();
+        });
+
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    loadJSON(event.target.result);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        const defaultData = {
+            "name": "John Doe",
+            "age": 30,
+            "active": true,
+            "email": null,
+            "address": {
+                "street": "123 Main St",
+                "city": "New York",
+                "zip": "10001"
+            },
+            "hobbies": ["reading", "gaming", "cooking"],
+            "scores": [95, 87, 92]
+        };
+        loadJSON(defaultData);
+    </script>
+</body>
+</html>
