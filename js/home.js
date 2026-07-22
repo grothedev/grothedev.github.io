@@ -14,6 +14,10 @@ let dom = {
 
 //APP START HERE
 $(document).ready(async function() {
+
+    //ping access logging service    
+    fetch('belthelziquor.com/poke');
+
     console.log('asdf');
     //the core loop of the client application
     // 1. setup relationship with DOM and grab references to its elements

@@ -14,5 +14,7 @@ the main idea is the following:
     - there is an audio player that can stream audio from player input
 
 technical details:
-    - use websockets
+    - websocket server implemented in Go
+
+
 
