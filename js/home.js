@@ -29,6 +29,9 @@ $(document).ready(async function() {
     log('init services');
     await initServices();
 
+    log('load links');
+    await loadLinks();
+
     setupRenderSystem();
 
 
@@ -59,6 +62,34 @@ function initServices(){
 
 function initDOM(){
     dom.body = $('body')[0];
+}
+
+async function loadLinks(){
+    try {
+        let res = await fetch('https://raw.githubusercontent.com/grothedev/links-resources-info-etc/refs/heads/main/data/links.json');
+        let data = await res.json();
+        renderLinks(data);
+    } catch (e) {
+        log('failed to fetch links: ' + e);
+    }
+}
+
+function renderLinks(links){
+    let $section = $('<section>');
+    let $h4 = $('<h4>').text('Links & Resources');
+    let $ul = $('<ul>');
+    links.forEach(item => {
+        let $li = $('<li>');
+        let $a = $('<a>').attr('href', item.url).attr('target', '_blank').text(item.label);
+        $li.append($a);
+        if (item.description){
+            $li.append($('<br>'));
+            $li.append($('<small>').text(item.description));
+        }
+        $ul.append($li);
+    });
+    $section.append($h4).append($ul);
+    $('main').append($section);
 }
 
 function log(msg, lvl=1){
