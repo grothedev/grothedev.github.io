@@ -15,10 +15,6 @@ let dom = {
 //APP START HERE
 $(document).ready(async function() {
 
-    //ping access logging service    
-    fetch('belthelziquor.com/poke');
-
-    console.log('asdf');
     //the core loop of the client application
     // 1. setup relationship with DOM and grab references to its elements
     log('init DOM');
@@ -53,13 +49,7 @@ function initCfg(){
 }
 
 async function getServerEnvVars(){
-    await axios.get(`${ENVURL}`).then((res)=>{
-        env = res.data;
-        //log(env);
-    }).catch((err)=>{
-        //log(err);
-    });
-    log('')
+    //fetch
 }
 
 function initServices(){
