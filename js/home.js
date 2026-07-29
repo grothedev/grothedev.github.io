@@ -30,9 +30,6 @@ $(document).ready(async function() {
     log('load links');
     await loadLinks();
 
-    setupRenderSystem();
-
-
 });
 
 //gets user config from local storage if there is any
