@@ -60,6 +60,7 @@ async function loadLinks(){
     try {
         let res = await fetch('https://raw.githubusercontent.com/grothedev/links-resources-info-etc/refs/heads/main/data/links.json');
         let data = await res.json();
+        shuffle(data);
         renderLinks(data);
     } catch (e) {
         log('failed to fetch links: ' + e);
@@ -88,4 +89,13 @@ function log(msg, lvl=1){
         dom.debugInfo.innerHTML = msg; //TODO running log + timestamp
     }
     console.log(msg);
+}
+
+function shuffle(arr){
+    for (let i = arr.length - 1; i > 0; i--) { 
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+    }
 }
