@@ -27,9 +27,6 @@ $(document).ready(async function() {
     log('init services');
     await initServices();
 
-    log('load links');
-    await loadLinks();
-
 });
 
 //gets user config from local storage if there is any
@@ -71,7 +68,6 @@ async function loadLinks(){
 
 function renderLinks(links){
     let $section = $('<section>');
-    let $h4 = $('<h4>').text('Links & Resources');
     let $ul = $('<ul>');
     links.forEach(item => {
         let $li = $('<li>');
@@ -83,7 +79,7 @@ function renderLinks(links){
         }
         $ul.append($li);
     });
-    $section.append($h4).append($ul);
+    $section.append($ul);
     $('main').append($section);
 }
 
