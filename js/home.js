@@ -1,5 +1,3 @@
-import { setupRenderSystem } from './render.js';
-
 let ENVURL = "" //remote server from which to grab env
 let env = {};
 let cfg = {}; //the user config
